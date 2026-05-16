@@ -7,12 +7,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import { execSync } from "child_process";
 import { existsSync } from "fs";
 import { searchFlights } from "./src/tequila.js";
+import { searchFlightsAmadeus } from "./src/amadeus.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
-// Call Claude via SDK (Render) or CLI (local dev fallback)
+// Call Claude via SDK (Render / ANTHROPIC_API_KEY) or CLI (local dev)
 async function askClaude(prompt) {
   if (process.env.ANTHROPIC_API_KEY) {
     const client = new Anthropic();
@@ -24,7 +25,6 @@ async function askClaude(prompt) {
     return msg.content[0].text;
   }
 
-  // Local dev: use Claude Code CLI (key lives in OS keychain)
   const bin = existsSync("/Users/atungc/.local/bin/claude")
     ? "/Users/atungc/.local/bin/claude"
     : "claude";
@@ -40,29 +40,62 @@ function parseJson(raw) {
   return JSON.parse(m[0]);
 }
 
+// POST /api/parse — convert natural language into trip fields
+app.post("/api/parse", async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: "text is required" });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt = `Extract trip details from this text: "${text}"
+
+Today is ${today}.
+
+Respond with ONLY valid JSON — no markdown:
+{
+  "from": "IATA code or null",
+  "to": "IATA code or null",
+  "date": "YYYY-MM-DD or null",
+  "nights": number or null,
+  "adults": number or null
+}
+
+Rules:
+- Convert city/country names to their main airport IATA code (Taipei→TPE, Tokyo→NRT, Osaka→KIX, Bangkok→BKK, Seoul→ICN, Singapore→SIN, London→LHR, Paris→CDG, NYC→JFK, LA→LAX)
+- If a month is mentioned without a year, use its next occurrence from today
+- If "next week / next month" use a reasonable date
+- "weekend" → nearest upcoming Friday
+- Leave fields null if genuinely unclear`.trim();
+
+  try {
+    const raw = await askClaude(prompt);
+    res.json(parseJson(raw));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 async function getFlights({ from, to, date, adults }) {
-  // Try Tequila live data first
+  // 1. Try Amadeus (real prices)
+  if (process.env.AMADEUS_CLIENT_ID && process.env.AMADEUS_CLIENT_SECRET) {
+    try {
+      const flights = await searchFlightsAmadeus({
+        from, to, date, adults,
+        clientId: process.env.AMADEUS_CLIENT_ID,
+        clientSecret: process.env.AMADEUS_CLIENT_SECRET,
+      });
+      if (flights?.length) return await recommendFlights(flights);
+    } catch { /* fall through */ }
+  }
+
+  // 2. Try Tequila
   if (process.env.TEQUILA_API_KEY) {
     try {
       const flights = await searchFlights({ from, to, date, adults, apiKey: process.env.TEQUILA_API_KEY });
-      if (flights?.length) {
-        // Recommend from live data
-        const prompt = `You are a personal travel advisor. Pick the best flight. Make a call — no hedging.
-
-FLIGHTS:
-${flights.map((f, i) => `[${i}] ${f.carrier} ${f.flight}: departs ${f.departs}, arrives ${f.arrives} (${f.duration}), $${f.price_usd}, ${f.stops === 0 ? "direct" : f.stops + " stop(s)"}`).join("\n")}
-
-Respond with ONLY valid JSON:
-{ "winner_index": 0, "runnerup_index": 1, "reason": "One sentence with real numbers." }`.trim();
-
-        const raw = await askClaude(prompt);
-        const { winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
-        return { flights, winner: flights[wi], runnerup: flights[Math.min(ri, flights.length - 1)], reason };
-      }
-    } catch { /* fall through to AI generation */ }
+      if (flights?.length) return await recommendFlights(flights);
+    } catch { /* fall through */ }
   }
 
-  // AI-generated flights + recommendation in one call
+  // 3. AI-generated flights + recommendation in one call
   const prompt = `You are a personal travel advisor and flight data expert.
 
 Generate 4 realistic one-way flight options from ${from} to ${to} on ${date} for ${adults} adult${adults > 1 ? "s" : ""}, then pick the best one.
@@ -81,6 +114,20 @@ Respond with ONLY valid JSON — no markdown:
 
   const raw = await askClaude(prompt);
   const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
+  return { flights, winner: flights[wi], runnerup: flights[Math.min(ri, flights.length - 1)], reason };
+}
+
+async function recommendFlights(flights) {
+  const prompt = `You are a personal travel advisor. Pick the best flight. Make a call — no hedging.
+
+FLIGHTS:
+${flights.map((f, i) => `[${i}] ${f.carrier} ${f.flight}: departs ${f.departs}, arrives ${f.arrives} (${f.duration}), $${f.price_usd}, ${f.stops === 0 ? "direct" : f.stops + " stop(s)"}`).join("\n")}
+
+Respond with ONLY valid JSON:
+{ "winner_index": 0, "runnerup_index": 1, "reason": "One sentence with real numbers." }`.trim();
+
+  const raw = await askClaude(prompt);
+  const { winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
   return { flights, winner: flights[wi], runnerup: flights[Math.min(ri, flights.length - 1)], reason };
 }
 
@@ -131,13 +178,12 @@ app.post("/api/search", async (req, res) => {
   const datesLabel = `${depart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${returnDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 
   try {
-    // Run flights and hotels in parallel
     const [flightResult, hotelResult] = await Promise.all([
       getFlights({ from, to, date, adults }),
       getHotels({ to, date, nights, adults }),
     ]);
 
-    res.json({ ...flightResult, hotel: hotelResult, datesLabel });
+    res.json({ ...flightResult, hotel: hotelResult, datesLabel, nights: Number(nights), adults: Number(adults) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

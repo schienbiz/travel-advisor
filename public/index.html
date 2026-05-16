@@ -301,6 +301,59 @@
     .step.active .step-dot { background: #52525b; }
     .step.done   .step-dot { background: #22c55e; }
 
+    .nl-divider {
+      text-align: center;
+      font-size: 0.72rem;
+      color: #3f3f46;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 4px 0 16px;
+      position: relative;
+    }
+
+    .nl-divider::before, .nl-divider::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 38%;
+      height: 1px;
+      background: #27272a;
+    }
+
+    .nl-divider::before { left: 0; }
+    .nl-divider::after  { right: 0; }
+
+    /* Trip total */
+    .trip-total {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .trip-total-label {
+      font-size: 0.8rem;
+      color: #52525b;
+    }
+
+    .trip-total-amount {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .trip-total-breakdown {
+      font-size: 0.75rem;
+      color: #52525b;
+      margin-top: 2px;
+      text-align: right;
+    }
+
     .error-msg {
       background: #1c1010;
       border: 1px solid #3f1515;
@@ -317,6 +370,14 @@
   <p class="subtitle">Get a single, opinionated recommendation — no endless list.</p>
 
   <div class="card">
+    <div class="field">
+      <label>Describe your trip</label>
+      <div style="display:flex;gap:8px">
+        <input id="nlInput" type="text" placeholder="e.g. Tokyo for 5 nights in July, 2 people from Taipei" style="flex:1">
+        <button id="parseBtn" onclick="parseNL()" style="width:auto;padding:10px 16px;margin:0;font-size:0.85rem">Fill ↓</button>
+      </div>
+    </div>
+    <div class="nl-divider">or fill manually</div>
     <div class="row">
       <div class="field">
         <label>From</label>
@@ -351,6 +412,36 @@
     const d = new Date();
     d.setDate(d.getDate() + 30);
     document.getElementById("date").value = d.toISOString().slice(0, 10);
+
+    async function parseNL() {
+      const text = document.getElementById("nlInput").value.trim();
+      if (!text) return;
+
+      const btn = document.getElementById("parseBtn");
+      btn.disabled = true;
+      btn.textContent = "…";
+
+      try {
+        const res = await fetch("/api/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error);
+
+        if (d.from)   document.getElementById("from").value   = d.from;
+        if (d.to)     document.getElementById("to").value     = d.to;
+        if (d.date)   document.getElementById("date").value   = d.date;
+        if (d.nights) document.getElementById("nights").value = d.nights;
+        if (d.adults) document.getElementById("adults").value = d.adults;
+      } catch (err) {
+        showError("Could not parse trip: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Fill ↓";
+      }
+    }
 
     async function search() {
       const from   = document.getElementById("from").value.trim().toUpperCase();
@@ -503,6 +594,26 @@
           </details>
         </div>` : "";
 
+      const adults   = parseInt(document.getElementById("adults").value, 10);
+      const flightTotal = winner.price_usd * adults;
+      const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
+      const tripTotal   = flightTotal + hotelTotal;
+
+      const totalHtml = `
+        <div class="trip-total">
+          <div>
+            <div class="trip-total-label">Estimated trip total</div>
+          </div>
+          <div>
+            <div class="trip-total-amount">$${tripTotal.toLocaleString()}</div>
+            <div class="trip-total-breakdown">
+              ${adults > 1 ? `${adults}× ` : ""}$${winner.price_usd} flight
+              ${hotel ? `+ ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}
+              ${adults > 1 ? `· per person ~$${Math.round(tripTotal / adults).toLocaleString()}` : ""}
+            </div>
+          </div>
+        </div>`;
+
       document.getElementById("result").innerHTML = `
         <div class="result-card">
           <div class="result-label">Recommended flight · ${escHtml(datesLabel)}</div>
@@ -531,7 +642,8 @@
             </table>
           </details>
         </div>
-        ${hotelHtml}`;
+        ${hotelHtml}
+        ${totalHtml}`;
     }
 
     function escHtml(s) {
@@ -542,9 +654,12 @@
         .replace(/"/g, "&quot;");
     }
 
-    // Allow Enter key to trigger search
+    document.getElementById("nlInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") parseNL();
+    });
+
     document.addEventListener("keydown", e => {
-      if (e.key === "Enter") search();
+      if (e.key === "Enter" && document.activeElement.id !== "nlInput") search();
     });
   </script>
 </body>
