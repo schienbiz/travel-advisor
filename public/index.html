@@ -341,7 +341,7 @@
         <input id="adults" type="number" value="1" min="1" max="9">
       </div>
     </div>
-    <button id="searchBtn" onclick="search()">Find best flight</button>
+    <button id="searchBtn" onclick="search()">Find best flight &amp; hotel</button>
   </div>
 
   <div id="result"></div>
@@ -383,17 +383,18 @@
         showError(err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = "Find best flight";
+        btn.textContent = "Find best flight & hotel";
       }
     }
 
     let _loadingTimer = null;
 
     const STEPS = [
-      { label: "Looking up routes and airlines",   delay: 0    },
-      { label: "Generating realistic flight options", delay: 6000  },
-      { label: "Comparing prices and schedules",   delay: 14000 },
-      { label: "Picking the best option",          delay: 22000 },
+      { label: "Looking up routes and airlines",      delay: 0     },
+      { label: "Generating flight options",           delay: 5000  },
+      { label: "Searching for hotels",                delay: 10000 },
+      { label: "Comparing prices and options",        delay: 16000 },
+      { label: "Picking the best flight and hotel",   delay: 22000 },
     ];
 
     function showLoading() {
@@ -445,9 +446,9 @@
         <div class="error-msg">${escHtml(msg)}</div>`;
     }
 
-    function showResult({ flights, winner, runnerup, reason, datesLabel }) {
+    function showResult({ flights, winner, runnerup, reason, datesLabel, hotel }) {
       stopLoading();
-      const winnerIdx = flights.indexOf(winner);
+      const winnerIdx = flights.findIndex(f => f.flight === winner.flight);
 
       const rows = flights.map((f, i) => `
         <tr class="${i === winnerIdx ? "is-winner" : ""}">
@@ -457,6 +458,50 @@
           <td>${f.stops === 0 ? "direct" : f.stops + " stop"}</td>
           <td>$${f.price_usd}</td>
         </tr>`).join("");
+
+      const nights = hotel ? Math.round(
+        (new Date(document.getElementById("date").value.replace(/-/g,"/")) - new Date(document.getElementById("date").value.replace(/-/g,"/"))) / 86400000
+      ) : null;
+      const nightCount = parseInt(document.getElementById("nights").value, 10);
+
+      const hotelHtml = hotel ? `
+        <div class="result-card" style="margin-top:16px">
+          <div class="result-label">Recommended hotel · ${escHtml(hotel.city)} · ${nightCount} nights</div>
+          <div class="winner-name">${escHtml(hotel.winner.name)}</div>
+          <div class="winner-details">
+            ${escHtml(hotel.winner.area)} &nbsp;·&nbsp;
+            ${"★".repeat(hotel.winner.stars || 0)} &nbsp;·&nbsp;
+            ${hotel.winner.rating}/10 &nbsp;·&nbsp;
+            <strong>$${hotel.winner.price_per_night_usd}/night</strong>
+            &nbsp;·&nbsp; $${hotel.winner.price_per_night_usd * nightCount} total
+          </div>
+          <div class="reason">${escHtml(hotel.reason)}</div>
+          <a class="book-btn" href="${escHtml(hotel.winner.booking_url)}" target="_blank" rel="noopener">
+            Book now →
+          </a>
+          <hr class="divider">
+          <div class="runnerup-label">Runner-up</div>
+          <div class="runnerup-row">
+            <span class="runnerup-name">${escHtml(hotel.runnerup.name)} · ${escHtml(hotel.runnerup.area)} · ${"★".repeat(hotel.runnerup.stars || 0)}</span>
+            <span class="runnerup-price">$${hotel.runnerup.price_per_night_usd}/night</span>
+          </div>
+          <details class="all-flights">
+            <summary>All options (${hotel.hotels.length})</summary>
+            <table class="flight-table">
+              <thead><tr><th>Hotel</th><th>Area</th><th>Stars</th><th>Rating</th><th>Price/night</th></tr></thead>
+              <tbody>
+                ${hotel.hotels.map((h, i) => `
+                  <tr class="${i === hotel.hotels.indexOf(hotel.winner) ? "is-winner" : ""}">
+                    <td>${escHtml(h.name)}${h === hotel.winner ? '<span class="badge">pick</span>' : ""}</td>
+                    <td>${escHtml(h.area)}</td>
+                    <td>${"★".repeat(h.stars || 0)}</td>
+                    <td>${h.rating}</td>
+                    <td>$${h.price_per_night_usd}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </details>
+        </div>` : "";
 
       document.getElementById("result").innerHTML = `
         <div class="result-card">
@@ -481,15 +526,12 @@
           <details class="all-flights">
             <summary>All options (${flights.length})</summary>
             <table class="flight-table">
-              <thead>
-                <tr>
-                  <th>Flight</th><th>Times</th><th>Duration</th><th>Stops</th><th>Price</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Flight</th><th>Times</th><th>Duration</th><th>Stops</th><th>Price</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </details>
-        </div>`;
+        </div>
+        ${hotelHtml}`;
     }
 
     function escHtml(s) {
