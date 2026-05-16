@@ -1,0 +1,9 @@
+name: Keep Alive
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf https://travel-advisor-wwrz.onrender.com/api/health

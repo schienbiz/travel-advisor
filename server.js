@@ -41,6 +41,8 @@ function bookingUrl(hotelName, city, checkIn, checkOut, adults) {
   return `https://www.booking.com/searchresults.html?ss=${q}&checkin=${checkIn}&checkout=${checkOut}&group_adults=${adults}&no_rooms=1&selected_currency=USD`;
 }
 
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
 // POST /api/parse — convert natural language into trip fields
 app.post("/api/parse", async (req, res) => {
   const { text } = req.body;
