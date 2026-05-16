@@ -174,7 +174,7 @@
     .history-clear:hover { color: var(--text2); opacity: 1; }
 
     /* ── Results ── */
-    #result { width: 100%; max-width: 920px; margin-top: 32px; }
+    .result-section { width: 100%; max-width: 920px; margin-top: 32px; }
     .results-grid { display: grid; grid-template-columns: 1fr 310px; gap: 14px; align-items: start; }
 
     .section-hdr {
@@ -325,7 +325,7 @@
     .hotel-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 18px; padding: 20px;
-      box-shadow: var(--shadow-card);
+      box-shadow: var(--shadow-card); max-width: 580px;
       opacity: 0; animation: cardIn 0.3s ease 0.1s forwards;
     }
     .hotel-name { font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 4px; line-height: 1.3; }
@@ -418,6 +418,19 @@
       .row { grid-template-columns: 1fr 1fr; }
       .row .field:first-child { grid-column: span 2; }
     }
+
+    /* ── Search buttons ── */
+    .search-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .btn-secondary {
+      width: 100%; padding: 15px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text2); border-radius: 13px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: all 0.15s; min-height: 50px; letter-spacing: -0.01em;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--text); background: var(--surface3); opacity: 1; }
+    .btn-secondary:active { transform: scale(0.99); }
+    .btn-secondary:disabled { opacity: 0.4; cursor: default; transform: none; }
 
     /* ── Trip type tabs ── */
     .trip-type-tabs {
@@ -568,7 +581,10 @@
       </div>
     </details>
 
-    <button class="btn-primary" id="searchBtn" onclick="search()">Find best flight &amp; hotel →</button>
+    <div class="search-btns">
+      <button class="btn-primary" id="flightBtn" onclick="searchFlights()">✈ Search Flights</button>
+      <button class="btn-secondary" id="hotelBtn" onclick="searchHotel()">🏨 Search Hotel</button>
+    </div>
   </div>
 
   <div id="historySection">
@@ -576,12 +592,14 @@
     <div class="history-chips" id="historyChips"></div>
   </div>
 
-  <div id="result"></div>
+  <div id="flightResult" class="result-section"></div>
+  <div id="hotelResult" class="result-section" style="margin-top:14px"></div>
 
   <script>
     // ── Init ──
     let tripType = "oneway";
     let legIdSeq = 0;
+    let _flt = null, _hlt = null;
 
     (function init() {
       const d = new Date(); d.setDate(d.getDate() + 30);
@@ -600,14 +618,11 @@
       document.querySelectorAll(".trip-tab").forEach((t, i) => {
         t.classList.toggle("active", ["oneway","roundtrip","multicity"][i] === type);
       });
-      document.getElementById("standardForm").style.display  = type === "multicity" ? "none" : "";
-      document.getElementById("multicityForm").style.display = type === "multicity" ? "" : "none";
+      document.getElementById("standardForm").style.display   = type === "multicity" ? "none" : "";
+      document.getElementById("multicityForm").style.display  = type === "multicity" ? "" : "none";
       document.getElementById("onewayFields").style.display   = type === "roundtrip" ? "none" : "";
       document.getElementById("roundtripFields").style.display = type === "roundtrip" ? "" : "none";
-      const btn = document.getElementById("searchBtn");
-      btn.textContent = type === "oneway"    ? "Find best flight & hotel →"
-                      : type === "roundtrip" ? "Find round-trip & hotel →"
-                      :                        "Find multi-city flights →";
+      document.getElementById("hotelBtn").style.display = type === "multicity" ? "none" : "";
     }
 
     // ── Multi-city legs ──
@@ -725,7 +740,7 @@
       document.getElementById("date").value   = e.date;
       document.getElementById("nights").value = e.nights;
       document.getElementById("adults").value = e.adults;
-      search();
+      searchFlights();
     }
     function clearHistory() { localStorage.removeItem("ta-history"); renderHistory(); }
 
@@ -760,11 +775,12 @@
           if (data.nights) document.getElementById("nights").value = data.nights;
           if (data.adults) document.getElementById("adults").value = data.adults;
         }
-      } catch (err) { showError("Could not parse: " + err.message); }
+      } catch (err) { showFlightError("Could not parse: " + err.message); }
       finally { btn.disabled = false; btn.textContent = "Fill ↓"; }
     }
 
-    async function search() {
+    // ── Flight search ──
+    async function searchFlights() {
       let body;
       const prefs = getPrefsText();
 
@@ -774,15 +790,15 @@
         const date   = document.getElementById("rtDepart").value;
         const retD   = document.getElementById("rtReturn").value;
         const adults = parseInt(document.getElementById("rtAdults").value, 10) || 1;
-        if (!from || !to || !date || !retD) { showError("Fill in origin, destination, depart, and return dates."); return; }
-        if (retD <= date) { showError("Return date must be after departure date."); return; }
+        if (!from || !to || !date || !retD) { showFlightError("Fill in origin, destination, depart, and return dates."); return; }
+        if (retD <= date) { showFlightError("Return date must be after departure date."); return; }
         body = { tripType: "roundtrip", from, to, date, returnDate: retD, adults, preferences: prefs };
 
       } else if (tripType === "multicity") {
         const legs   = getLegs();
         const adults = parseInt(document.getElementById("mcAdults").value, 10) || 1;
-        if (legs.length < 2) { showError("Add at least 2 legs for multi-city."); return; }
-        for (const leg of legs) if (!leg.from || !leg.to || !leg.date) { showError("Fill in all leg fields."); return; }
+        if (legs.length < 2) { showFlightError("Add at least 2 legs for multi-city."); return; }
+        for (const leg of legs) if (!leg.from || !leg.to || !leg.date) { showFlightError("Fill in all leg fields."); return; }
         body = { tripType: "multicity", legs, adults, preferences: prefs };
 
       } else {
@@ -791,7 +807,7 @@
         const date   = document.getElementById("date").value;
         const nights = parseInt(document.getElementById("nights").value, 10);
         const adults = parseInt(document.getElementById("adults").value, 10);
-        if (!from || !to || !date) { showError("Please fill in origin, destination, and date."); return; }
+        if (!from || !to || !date) { showFlightError("Please fill in origin, destination, and date."); return; }
         body = { tripType: "oneway", from, to, date, nights, adults, preferences: prefs };
         const dep = new Date(date), ret = new Date(dep); ret.setDate(ret.getDate() + nights);
         saveToHistory({ from, to, date, nights, adults,
@@ -799,38 +815,63 @@
                  ret.toLocaleDateString("en-US",{month:"short",day:"numeric"}) });
       }
 
-      const btn = document.getElementById("searchBtn");
+      const btn = document.getElementById("flightBtn");
       btn.disabled = true; btn.textContent = "Searching…";
-      showLoading();
+      showFlightLoading();
       try {
-        const r = await fetch("/api/search", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+        const r = await fetch("/api/flights", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
         const data = await r.json(); if (!r.ok) throw new Error(data.error || "Unknown error");
-        showResult(data);
-      } catch (err) { showError(err.message); }
-      finally {
-        btn.disabled = false;
-        btn.textContent = tripType === "oneway" ? "Find best flight & hotel →"
-                        : tripType === "roundtrip" ? "Find round-trip & hotel →"
-                        : "Find multi-city flights →";
-      }
+        showFlightResult(data);
+      } catch (err) { showFlightError(err.message); }
+      finally { btn.disabled = false; btn.textContent = "✈ Search Flights"; }
     }
 
-    let _lt = null;
-    const STEPS = [
-      { label: "Checking real prices",         delay: 0     },
-      { label: "Generating flight options",     delay: 5000  },
-      { label: "Searching hotels",              delay: 10000 },
-      { label: "Comparing all options",         delay: 18000 },
-      { label: "Picking the best combination",  delay: 26000 },
+    // ── Hotel search ──
+    async function searchHotel() {
+      const prefs = getPrefsText();
+      let to, date, nights, adults;
+
+      if (tripType === "roundtrip") {
+        to     = document.getElementById("to").value.trim().toUpperCase();
+        date   = document.getElementById("rtDepart").value;
+        const retD = document.getElementById("rtReturn").value;
+        nights = Math.max(1, Math.round((new Date(retD) - new Date(date)) / 86400000));
+        adults = parseInt(document.getElementById("rtAdults").value, 10) || 1;
+      } else {
+        to     = document.getElementById("to").value.trim().toUpperCase();
+        date   = document.getElementById("date").value;
+        nights = parseInt(document.getElementById("nights").value, 10) || 4;
+        adults = parseInt(document.getElementById("adults").value, 10) || 1;
+      }
+
+      if (!to || !date) { showHotelError("Please fill in destination and date."); return; }
+
+      const btn = document.getElementById("hotelBtn");
+      btn.disabled = true; btn.textContent = "Searching…";
+      showHotelLoading();
+      try {
+        const r = await fetch("/api/hotel", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ to, date, nights, adults, preferences: prefs }) });
+        const data = await r.json(); if (!r.ok) throw new Error(data.error || "Unknown error");
+        showHotelResultSection(data);
+      } catch (err) { showHotelError(err.message); }
+      finally { btn.disabled = false; btn.textContent = "🏨 Search Hotel"; }
+    }
+
+    // ── Flight loading ──
+    const FLIGHT_STEPS = [
+      { label: "Checking real prices",       delay: 0     },
+      { label: "Generating flight options",   delay: 5000  },
+      { label: "Comparing all options",       delay: 14000 },
+      { label: "Picking the best flight",     delay: 22000 },
     ];
-    function showLoading() {
-      if (_lt) clearInterval(_lt);
-      document.getElementById("result").innerHTML = `
+    function showFlightLoading() {
+      if (_flt) clearInterval(_flt);
+      document.getElementById("flightResult").innerHTML = `
         <div class="loading-wrap">
           <div class="loading-icon">✈</div>
-          <div class="loading-steps" id="loadingSteps">
-            ${STEPS.map((s,i) => `
-              <div class="step" id="step${i}">
+          <div class="loading-steps">
+            ${FLIGHT_STEPS.map((s,i) => `
+              <div class="step" id="fs${i}">
                 <span class="step-icon"><span class="step-dot"></span></span>
                 <span>${s.label}</span>
               </div>`).join("")}
@@ -839,18 +880,53 @@
       const start = Date.now();
       function tick() {
         const el = Date.now() - start; let set = false;
-        for (let i = STEPS.length-1; i >= 0; i--) {
-          const s = document.getElementById("step"+i); if (!s) continue;
-          if (el >= STEPS[i].delay) {
+        for (let i = FLIGHT_STEPS.length-1; i >= 0; i--) {
+          const s = document.getElementById("fs"+i); if (!s) continue;
+          if (el >= FLIGHT_STEPS[i].delay) {
             if (!set) { s.className="step active"; s.querySelector(".step-icon").innerHTML='<span class="spinner-sm"></span>'; set=true; }
             else      { s.className="step done";   s.querySelector(".step-icon").innerHTML='<span style="color:var(--green);font-size:0.8rem;font-weight:700">✓</span>'; }
           }
         }
       }
-      tick(); _lt = setInterval(tick, 400);
+      tick(); _flt = setInterval(tick, 400);
     }
-    function stopLoading() { if (_lt) { clearInterval(_lt); _lt = null; } }
-    function showError(msg) { stopLoading(); document.getElementById("result").innerHTML = `<div class="error-msg">⚠ ${esc(msg)}</div>`; }
+    function stopFlightLoading() { if (_flt) { clearInterval(_flt); _flt = null; } }
+    function showFlightError(msg) { stopFlightLoading(); document.getElementById("flightResult").innerHTML = `<div class="error-msg">⚠ ${esc(msg)}</div>`; }
+
+    // ── Hotel loading ──
+    const HOTEL_STEPS = [
+      { label: "Looking up hotel options",   delay: 0     },
+      { label: "Comparing hotels",           delay: 8000  },
+      { label: "Picking the best stay",      delay: 16000 },
+    ];
+    function showHotelLoading() {
+      if (_hlt) clearInterval(_hlt);
+      document.getElementById("hotelResult").innerHTML = `
+        <div class="loading-wrap">
+          <div class="loading-icon">🏨</div>
+          <div class="loading-steps">
+            ${HOTEL_STEPS.map((s,i) => `
+              <div class="step" id="hs${i}">
+                <span class="step-icon"><span class="step-dot"></span></span>
+                <span>${s.label}</span>
+              </div>`).join("")}
+          </div>
+        </div>`;
+      const start = Date.now();
+      function tick() {
+        const el = Date.now() - start; let set = false;
+        for (let i = HOTEL_STEPS.length-1; i >= 0; i--) {
+          const s = document.getElementById("hs"+i); if (!s) continue;
+          if (el >= HOTEL_STEPS[i].delay) {
+            if (!set) { s.className="step active"; s.querySelector(".step-icon").innerHTML='<span class="spinner-sm"></span>'; set=true; }
+            else      { s.className="step done";   s.querySelector(".step-icon").innerHTML='<span style="color:var(--green);font-size:0.8rem;font-weight:700">✓</span>'; }
+          }
+        }
+      }
+      tick(); _hlt = setInterval(tick, 400);
+    }
+    function stopHotelLoading() { if (_hlt) { clearInterval(_hlt); _hlt = null; } }
+    function showHotelError(msg) { stopHotelLoading(); document.getElementById("hotelResult").innerHTML = `<div class="error-msg">⚠ ${esc(msg)}</div>`; }
 
     function airlineCode(flight, carrier) {
       if (flight && /^[A-Z0-9]{2}/.test(flight)) return flight.slice(0, 2);
@@ -973,79 +1049,44 @@
         </div>`;
     }
 
-    // ── Trip total card ──
-    function renderTotal(label, amount, breakdown, perPerson) {
-      return `
-        <div class="trip-total-card">
-          <div class="total-label">${esc(label)}</div>
-          <div class="total-amount">$${amount.toLocaleString()}</div>
-          <div class="total-breakdown">${esc(breakdown)}</div>
-          ${perPerson ? `<div class="total-per">≈ $${perPerson.toLocaleString()} per person</div>` : ""}
-        </div>`;
-    }
-
-    // ── Result dispatchers ──
-    function showResult(data) {
-      stopLoading();
-      if (data.tripType === "roundtrip")  showRoundTripResult(data);
+    // ── Flight result dispatcher ──
+    function showFlightResult(data) {
+      stopFlightLoading();
+      if (data.tripType === "roundtrip")      showRoundTripResult(data);
       else if (data.tripType === "multicity") showMultiCityResult(data);
-      else showOneWayResult(data);
+      else                                    showOneWayResult(data);
     }
 
-    function showOneWayResult({ flights, winner, reason, datesLabel, hotel, nights: n, adults: a }) {
-      const nightCount = n, adultCount = a;
+    function showHotelResultSection(data) {
+      stopHotelLoading();
+      document.getElementById("hotelResult").innerHTML = renderHotelCard(data, data.nights);
+    }
+
+    function showOneWayResult({ flights, winner, reason, datesLabel }) {
       const fromVal = document.getElementById("from").value.toUpperCase();
       const toVal   = document.getElementById("to").value.toUpperCase();
       const dateVal = document.getElementById("date").value;
       const cards   = renderFlightCards(flights, winner, reason, fromVal, toVal, dateVal);
-      const hotelHtml = hotel ? renderHotelCard(hotel, nightCount) : "";
-      const flightTotal = (winner?.price_usd ?? 0) * adultCount;
-      const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
-      const tripTotal   = flightTotal + hotelTotal;
-      const breakdown   = `${adultCount > 1 ? adultCount+"× " : ""}$${winner?.price_usd ?? 0} flight${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}`;
-      document.getElementById("result").innerHTML = `
-        <div class="results-grid">
-          <div>
-            <div class="section-hdr">Flights · ${esc(datesLabel)} <span class="section-hdr-badge">${flights.length} options</span></div>
-            ${cards}
-          </div>
-          <div class="right-col">
-            ${hotelHtml}
-            ${renderTotal("Estimated total", tripTotal, breakdown, adultCount > 1 ? Math.round(tripTotal/adultCount) : 0)}
-          </div>
-        </div>`;
+      document.getElementById("flightResult").innerHTML = `
+        <div class="section-hdr">Flights · ${esc(datesLabel)} <span class="section-hdr-badge">${flights.length} options</span></div>
+        ${cards}`;
     }
 
-    function showRoundTripResult({ outbound, return: ret, hotel, nights: n, adults: a }) {
-      const nightCount = n, adultCount = a;
+    function showRoundTripResult({ outbound, return: ret }) {
       const fromVal  = document.getElementById("from").value.toUpperCase();
       const toVal    = document.getElementById("to").value.toUpperCase();
       const departD  = document.getElementById("rtDepart").value;
       const returnD  = document.getElementById("rtReturn").value;
       const outCards = renderFlightCards(outbound.flights, outbound.winner, outbound.reason, fromVal, toVal, departD);
       const retCards = renderFlightCards(ret.flights, ret.winner, ret.reason, toVal, fromVal, returnD);
-      const hotelHtml = hotel ? renderHotelCard(hotel, nightCount) : "";
-      const flightTotal = ((outbound.winner?.price_usd ?? 0) + (ret.winner?.price_usd ?? 0)) * adultCount;
-      const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
-      const tripTotal   = flightTotal + hotelTotal;
-      const breakdown   = `${adultCount > 1 ? adultCount+"× " : ""}($${outbound.winner?.price_usd ?? 0} out + $${ret.winner?.price_usd ?? 0} return)${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}`;
-      document.getElementById("result").innerHTML = `
-        <div class="results-grid">
-          <div>
-            <div class="section-hdr">Outbound · ${esc(fromVal)}→${esc(toVal)} · ${esc(fmtDate(departD))} <span class="section-hdr-badge">${outbound.flights.length} options</span></div>
-            ${outCards}
-            <div class="section-hdr" style="margin-top:24px">Return · ${esc(toVal)}→${esc(fromVal)} · ${esc(fmtDate(returnD))} <span class="section-hdr-badge">${ret.flights.length} options</span></div>
-            ${retCards}
-          </div>
-          <div class="right-col">
-            ${hotelHtml}
-            ${renderTotal("Round-trip total", tripTotal, breakdown, adultCount > 1 ? Math.round(tripTotal/adultCount) : 0)}
-          </div>
-        </div>`;
+      document.getElementById("flightResult").innerHTML = `
+        <div class="section-hdr">Outbound · ${esc(fromVal)}→${esc(toVal)} · ${esc(fmtDate(departD))} <span class="section-hdr-badge">${outbound.flights.length} options</span></div>
+        ${outCards}
+        <div class="section-hdr" style="margin-top:24px">Return · ${esc(toVal)}→${esc(fromVal)} · ${esc(fmtDate(returnD))} <span class="section-hdr-badge">${ret.flights.length} options</span></div>
+        ${retCards}`;
     }
 
-    function showMultiCityResult({ legs, adults: a }) {
-      const adultCount = a;
+    function showMultiCityResult({ legs }) {
       const legsHtml = legs.map((leg, i) => {
         const cards = renderFlightCards(leg.flights, leg.winner, leg.reason, leg.from, leg.to, leg.date);
         return `
@@ -1055,15 +1096,7 @@
           </div>
           ${cards}`;
       }).join("");
-      const total = legs.reduce((s, l) => s + (l.winner?.price_usd ?? 0), 0) * adultCount;
-      const breakdown = legs.map(l => `${l.from}→${l.to} $${l.winner?.price_usd ?? 0}`).join(" + ") + (adultCount > 1 ? ` × ${adultCount}` : "");
-      document.getElementById("result").innerHTML = `
-        <div style="width:100%;max-width:920px">
-          ${legsHtml}
-          <div style="margin-top:16px;max-width:380px">
-            ${renderTotal("Multi-city total · flights only", total, breakdown, adultCount > 1 ? Math.round(total/adultCount) : 0)}
-          </div>
-        </div>`;
+      document.getElementById("flightResult").innerHTML = legsHtml;
     }
 
     function esc(s) {
@@ -1072,7 +1105,7 @@
 
     document.getElementById("nlInput").addEventListener("keydown", e => { if (e.key==="Enter") parseNL(); });
     document.addEventListener("keydown", e => {
-      if (e.key==="Enter" && !["nlInput","prefNotes"].includes(document.activeElement?.id)) search();
+      if (e.key==="Enter" && !["nlInput","prefNotes"].includes(document.activeElement?.id)) searchFlights();
     });
     ["from","to"].forEach(id => {
       document.getElementById(id).addEventListener("input", function() {
