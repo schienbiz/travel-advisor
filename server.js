@@ -36,6 +36,11 @@ function parseJson(raw) {
   return JSON.parse(m[0]);
 }
 
+function bookingUrl(hotelName, city, checkIn, checkOut, adults) {
+  const q = encodeURIComponent(`${hotelName} ${city}`);
+  return `https://www.booking.com/searchresults.html?ss=${q}&checkin=${checkIn}&checkout=${checkOut}&group_adults=${adults}&no_rooms=1&selected_currency=USD`;
+}
+
 // POST /api/parse — convert natural language into trip fields
 app.post("/api/parse", async (req, res) => {
   const { text } = req.body;
@@ -232,7 +237,7 @@ Respond with ONLY valid JSON — no markdown:
 {
   "city": "City Name",
   "hotels": [
-    { "name": "Hotel Name", "area": "Neighborhood", "stars": 4, "rating": 8.5, "price_per_night_usd": 120, "booking_url": "https://www.booking.com/hotel/jp/example.html" }
+    { "name": "Hotel Name", "area": "Neighborhood", "stars": 4, "rating": 8.5, "price_per_night_usd": 120 }
   ],
   "winner_index": 0,
   "runnerup_index": 1,
@@ -243,7 +248,13 @@ Respond with ONLY valid JSON — no markdown:
   const fullPrompt = prompt + prefLine;
   const raw = await askClaude(fullPrompt);
   const { city, hotels, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
-  return { city, hotels, winner: hotels[wi], runnerup: hotels[Math.min(ri, hotels.length - 1)], reason };
+
+  const enriched = hotels.map(h => ({
+    ...h,
+    booking_url: bookingUrl(h.name, city, date, checkOutStr, adults),
+  }));
+
+  return { city, hotels: enriched, winner: enriched[wi], runnerup: enriched[Math.min(ri, enriched.length - 1)], reason };
 }
 
 // POST /api/search
