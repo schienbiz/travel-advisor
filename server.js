@@ -259,24 +259,57 @@ Respond with ONLY valid JSON — no markdown:
 
 // POST /api/search
 app.post("/api/search", async (req, res) => {
-  const { from, to, date, nights = 4, adults = 1, preferences = "" } = req.body;
+  const { from, to, date, nights = 4, adults = 1, preferences = "",
+          tripType = "oneway", returnDate, legs } = req.body;
 
-  if (!from || !to || !date) {
-    return res.status(400).json({ error: "from, to, and date are required" });
+  function fmt(d) {
+    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
-  const depart = new Date(date);
-  const returnDate = new Date(depart);
-  returnDate.setDate(returnDate.getDate() + Number(nights));
-  const datesLabel = `${depart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${returnDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-
   try {
-    const [flightResult, hotelResult] = await Promise.all([
-      getFlights({ from, to, date, adults, preferences }),
-      getHotels({ to, date, nights, adults, preferences }),
-    ]);
+    if (tripType === "roundtrip") {
+      if (!from || !to || !date || !returnDate)
+        return res.status(400).json({ error: "from, to, date, and returnDate are required" });
+      const nightsRT = Math.max(1, Math.round((new Date(returnDate) - new Date(date)) / 86400000));
+      const [outbound, ret, hotel] = await Promise.all([
+        getFlights({ from, to, date, adults, preferences }),
+        getFlights({ from: to, to: from, date: returnDate, adults, preferences }),
+        getHotels({ to, date, nights: nightsRT, adults, preferences }),
+      ]);
+      return res.json({
+        tripType: "roundtrip", outbound, return: ret, hotel,
+        datesLabel: `${fmt(date)} – ${fmt(returnDate)}`,
+        nights: nightsRT, adults: Number(adults),
+      });
 
-    res.json({ ...flightResult, hotel: hotelResult, datesLabel, nights: Number(nights), adults: Number(adults) });
+    } else if (tripType === "multicity") {
+      if (!legs?.length || legs.length < 2)
+        return res.status(400).json({ error: "at least 2 legs required for multi-city" });
+      for (const leg of legs)
+        if (!leg.from || !leg.to || !leg.date)
+          return res.status(400).json({ error: "each leg requires from, to, and date" });
+      const legResults = await Promise.all(
+        legs.map(leg => getFlights({ from: leg.from, to: leg.to, date: leg.date, adults, preferences }))
+      );
+      return res.json({
+        tripType: "multicity",
+        legs: legs.map((leg, i) => ({ ...leg, ...legResults[i] })),
+        datesLabel: `${legs[0].from}→${legs.map(l => l.to).join("→")}`,
+        adults: Number(adults),
+      });
+
+    } else {
+      if (!from || !to || !date)
+        return res.status(400).json({ error: "from, to, and date are required" });
+      const dep = new Date(date), ret2 = new Date(dep);
+      ret2.setDate(ret2.getDate() + Number(nights));
+      const datesLabel = `${dep.toLocaleDateString("en-US",{month:"short",day:"numeric"})}–${ret2.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;
+      const [flightResult, hotelResult] = await Promise.all([
+        getFlights({ from, to, date, adults, preferences }),
+        getHotels({ to, date, nights, adults, preferences }),
+      ]);
+      return res.json({ tripType: "oneway", ...flightResult, hotel: hotelResult, datesLabel, nights: Number(nights), adults: Number(adults) });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

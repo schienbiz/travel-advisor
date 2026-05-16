@@ -418,6 +418,46 @@
       .row { grid-template-columns: 1fr 1fr; }
       .row .field:first-child { grid-column: span 2; }
     }
+
+    /* ── Trip type tabs ── */
+    .trip-type-tabs {
+      display: flex; gap: 3px; margin-bottom: 22px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 13px; padding: 4px;
+    }
+    .trip-tab {
+      flex: 1; padding: 8px 6px; border-radius: 10px;
+      background: none; border: none; color: var(--text3);
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; min-height: 0; letter-spacing: -0.01em;
+    }
+    .trip-tab.active { background: var(--surface3); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+    .trip-tab:hover:not(.active) { color: var(--text2); opacity: 1; }
+
+    /* ── Multi-city legs ── */
+    .leg-row {
+      display: grid; grid-template-columns: 1fr 20px 1fr 148px 30px;
+      gap: 6px; align-items: end; margin-bottom: 8px;
+    }
+    .leg-arrow { display: flex; align-items: flex-end; justify-content: center; color: var(--text3); padding-bottom: 12px; font-size: 0.9rem; }
+    .btn-remove-leg {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text3); cursor: pointer; width: 30px; height: 44px; min-height: 0;
+      font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; padding: 0;
+    }
+    .btn-remove-leg:hover { border-color: var(--red); color: var(--red); opacity: 1; }
+    .leg-placeholder { width: 30px; }
+    .btn-add-leg {
+      background: none; border: 1px dashed var(--border2); border-radius: 10px;
+      color: var(--text3); cursor: pointer; padding: 9px; font-size: 0.82rem; font-weight: 500;
+      width: 100%; min-height: 0; margin-top: 4px; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-add-leg:hover { border-color: var(--accent); color: var(--accent2); opacity: 1; }
+    @media (max-width: 520px) {
+      .leg-row { grid-template-columns: 1fr 16px 1fr 120px 28px; gap: 4px; }
+    }
   </style>
 </head>
 <body>
@@ -429,6 +469,12 @@
   </div>
 
   <div class="card">
+    <div class="trip-type-tabs">
+      <button class="trip-tab active" onclick="setTripType('oneway')">One-way</button>
+      <button class="trip-tab" onclick="setTripType('roundtrip')">Round-trip</button>
+      <button class="trip-tab" onclick="setTripType('multicity')">Multi-city</button>
+    </div>
+
     <div class="field" style="margin-bottom:8px">
       <label>Describe your trip</label>
       <div class="nl-row">
@@ -438,30 +484,62 @@
     </div>
     <div class="nl-divider">or fill manually</div>
 
-    <div class="route-row">
-      <div class="field" style="margin:0">
-        <label>From</label>
-        <input id="from" class="iata-input" type="text" placeholder="TPE" maxlength="3">
+    <!-- One-way + Round-trip shared form -->
+    <div id="standardForm">
+      <div class="route-row">
+        <div class="field" style="margin:0">
+          <label>From</label>
+          <input id="from" class="iata-input" type="text" placeholder="TPE" maxlength="3">
+        </div>
+        <button class="swap-btn" onclick="swapRoutes()" title="Swap">⇄</button>
+        <div class="field" style="margin:0">
+          <label>To</label>
+          <input id="to" class="iata-input" type="text" placeholder="LHR" maxlength="3">
+        </div>
       </div>
-      <button class="swap-btn" onclick="swapRoutes()" title="Swap">⇄</button>
-      <div class="field" style="margin:0">
-        <label>To</label>
-        <input id="to" class="iata-input" type="text" placeholder="LHR" maxlength="3">
+
+      <div id="onewayFields">
+        <div class="row">
+          <div class="field">
+            <label>Departure date</label>
+            <input id="date" type="date">
+          </div>
+          <div class="field">
+            <label>Nights</label>
+            <input id="nights" type="number" value="4" min="1" max="30">
+          </div>
+          <div class="field">
+            <label>Travelers</label>
+            <input id="adults" type="number" value="1" min="1" max="9">
+          </div>
+        </div>
+      </div>
+
+      <div id="roundtripFields" style="display:none">
+        <div class="row">
+          <div class="field">
+            <label>Depart</label>
+            <input id="rtDepart" type="date">
+          </div>
+          <div class="field">
+            <label>Return</label>
+            <input id="rtReturn" type="date">
+          </div>
+          <div class="field">
+            <label>Travelers</label>
+            <input id="rtAdults" type="number" value="1" min="1" max="9">
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="row">
-      <div class="field">
-        <label>Departure date</label>
-        <input id="date" type="date">
-      </div>
-      <div class="field">
-        <label>Nights</label>
-        <input id="nights" type="number" value="4" min="1" max="30">
-      </div>
-      <div class="field">
+    <!-- Multi-city form -->
+    <div id="multicityForm" style="display:none">
+      <div id="legRows"></div>
+      <button class="btn-add-leg" id="addLegBtn" onclick="addLeg()">+ Add leg</button>
+      <div class="field" style="margin-top:14px; max-width:140px">
         <label>Travelers</label>
-        <input id="adults" type="number" value="1" min="1" max="9">
+        <input id="mcAdults" type="number" value="1" min="1" max="9">
       </div>
     </div>
 
@@ -501,13 +579,95 @@
   <div id="result"></div>
 
   <script>
-    const d = new Date(); d.setDate(d.getDate() + 30);
-    document.getElementById("date").value = d.toISOString().slice(0, 10);
-    loadPrefs(); renderHistory();
+    // ── Init ──
+    let tripType = "oneway";
+    let legIdSeq = 0;
 
+    (function init() {
+      const d = new Date(); d.setDate(d.getDate() + 30);
+      const ds = d.toISOString().slice(0, 10);
+      document.getElementById("date").value = ds;
+      document.getElementById("rtDepart").value = ds;
+      const r = new Date(d); r.setDate(r.getDate() + 7);
+      document.getElementById("rtReturn").value = r.toISOString().slice(0, 10);
+      addLeg(); addLeg();
+      loadPrefs(); renderHistory();
+    })();
+
+    // ── Trip type ──
+    function setTripType(type) {
+      tripType = type;
+      document.querySelectorAll(".trip-tab").forEach((t, i) => {
+        t.classList.toggle("active", ["oneway","roundtrip","multicity"][i] === type);
+      });
+      document.getElementById("standardForm").style.display  = type === "multicity" ? "none" : "";
+      document.getElementById("multicityForm").style.display = type === "multicity" ? "" : "none";
+      document.getElementById("onewayFields").style.display   = type === "roundtrip" ? "none" : "";
+      document.getElementById("roundtripFields").style.display = type === "roundtrip" ? "" : "none";
+      const btn = document.getElementById("searchBtn");
+      btn.textContent = type === "oneway"    ? "Find best flight & hotel →"
+                      : type === "roundtrip" ? "Find round-trip & hotel →"
+                      :                        "Find multi-city flights →";
+    }
+
+    // ── Multi-city legs ──
+    function addLeg() {
+      const rows = document.getElementById("legRows");
+      if (rows.children.length >= 4) return;
+      const idx = legIdSeq++;
+      const isFirst = rows.children.length === 0;
+      const d = new Date(); d.setDate(d.getDate() + 30 + rows.children.length * 4);
+      const div = document.createElement("div");
+      div.className = "leg-row"; div.id = `leg-${idx}`;
+      div.innerHTML = `
+        <div class="field" style="margin:0">
+          ${isFirst ? '<label>From</label>' : ''}
+          <input class="iata-input mc-from" type="text" placeholder="TPE" maxlength="3">
+        </div>
+        <div class="leg-arrow">→</div>
+        <div class="field" style="margin:0">
+          ${isFirst ? '<label>To</label>' : ''}
+          <input class="iata-input mc-to" type="text" placeholder="LHR" maxlength="3">
+        </div>
+        <div class="field" style="margin:0">
+          ${isFirst ? '<label>Date</label>' : ''}
+          <input class="mc-date" type="date" value="${d.toISOString().slice(0,10)}">
+        </div>
+        ${rows.children.length >= 2
+          ? `<button class="btn-remove-leg" onclick="removeLeg(${idx})" title="Remove">×</button>`
+          : `<div class="leg-placeholder"></div>`}`;
+      rows.appendChild(div);
+      div.querySelectorAll(".mc-from,.mc-to").forEach(inp => {
+        inp.addEventListener("input", function() {
+          const s = this.selectionStart; this.value = this.value.toUpperCase(); this.setSelectionRange(s, s);
+        });
+      });
+      document.getElementById("addLegBtn").style.display = rows.children.length >= 4 ? "none" : "";
+    }
+
+    function removeLeg(idx) {
+      const el = document.getElementById(`leg-${idx}`);
+      if (el) el.remove();
+      document.getElementById("addLegBtn").style.display = "";
+    }
+
+    function getLegs() {
+      return Array.from(document.querySelectorAll("#legRows .leg-row")).map(row => ({
+        from: row.querySelector(".mc-from").value.trim().toUpperCase(),
+        to:   row.querySelector(".mc-to").value.trim().toUpperCase(),
+        date: row.querySelector(".mc-date").value,
+      }));
+    }
+
+    // ── Helpers ──
     function swapRoutes() {
       const f = document.getElementById("from"), t = document.getElementById("to");
       [f.value, t.value] = [t.value, f.value];
+    }
+
+    function fmtDate(dateStr) {
+      if (!dateStr) return "";
+      return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
     }
 
     function loadPrefs() {
@@ -559,6 +719,7 @@
     }
     function restoreSearch(idx) {
       const e = getHistory()[idx]; if (!e) return;
+      setTripType("oneway");
       document.getElementById("from").value   = e.from;
       document.getElementById("to").value     = e.to;
       document.getElementById("date").value   = e.date;
@@ -575,38 +736,83 @@
       try {
         const r = await fetch("/api/parse", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({text}) });
         const data = await r.json(); if (!r.ok) throw new Error(data.error);
-        if (data.from)   document.getElementById("from").value   = data.from;
-        if (data.to)     document.getElementById("to").value     = data.to;
-        if (data.date)   document.getElementById("date").value   = data.date;
-        if (data.nights) document.getElementById("nights").value = data.nights;
-        if (data.adults) document.getElementById("adults").value = data.adults;
+        if (tripType === "multicity") {
+          const rows = document.querySelectorAll("#legRows .leg-row");
+          if (rows[0]) {
+            if (data.from) rows[0].querySelector(".mc-from").value = data.from;
+            if (data.to)   rows[0].querySelector(".mc-to").value   = data.to;
+            if (data.date) rows[0].querySelector(".mc-date").value = data.date;
+          }
+          if (data.adults) document.getElementById("mcAdults").value = data.adults;
+        } else if (tripType === "roundtrip") {
+          if (data.from)   document.getElementById("from").value      = data.from;
+          if (data.to)     document.getElementById("to").value        = data.to;
+          if (data.date)   document.getElementById("rtDepart").value  = data.date;
+          if (data.nights && data.date) {
+            const ret = new Date(data.date); ret.setDate(ret.getDate() + data.nights);
+            document.getElementById("rtReturn").value = ret.toISOString().slice(0, 10);
+          }
+          if (data.adults) document.getElementById("rtAdults").value  = data.adults;
+        } else {
+          if (data.from)   document.getElementById("from").value   = data.from;
+          if (data.to)     document.getElementById("to").value     = data.to;
+          if (data.date)   document.getElementById("date").value   = data.date;
+          if (data.nights) document.getElementById("nights").value = data.nights;
+          if (data.adults) document.getElementById("adults").value = data.adults;
+        }
       } catch (err) { showError("Could not parse: " + err.message); }
       finally { btn.disabled = false; btn.textContent = "Fill ↓"; }
     }
 
     async function search() {
-      const from   = document.getElementById("from").value.trim().toUpperCase();
-      const to     = document.getElementById("to").value.trim().toUpperCase();
-      const date   = document.getElementById("date").value;
-      const nights = parseInt(document.getElementById("nights").value, 10);
-      const adults = parseInt(document.getElementById("adults").value, 10);
-      if (!from || !to || !date) { showError("Please fill in origin, destination, and date."); return; }
+      let body;
+      const prefs = getPrefsText();
+
+      if (tripType === "roundtrip") {
+        const from   = document.getElementById("from").value.trim().toUpperCase();
+        const to     = document.getElementById("to").value.trim().toUpperCase();
+        const date   = document.getElementById("rtDepart").value;
+        const retD   = document.getElementById("rtReturn").value;
+        const adults = parseInt(document.getElementById("rtAdults").value, 10) || 1;
+        if (!from || !to || !date || !retD) { showError("Fill in origin, destination, depart, and return dates."); return; }
+        if (retD <= date) { showError("Return date must be after departure date."); return; }
+        body = { tripType: "roundtrip", from, to, date, returnDate: retD, adults, preferences: prefs };
+
+      } else if (tripType === "multicity") {
+        const legs   = getLegs();
+        const adults = parseInt(document.getElementById("mcAdults").value, 10) || 1;
+        if (legs.length < 2) { showError("Add at least 2 legs for multi-city."); return; }
+        for (const leg of legs) if (!leg.from || !leg.to || !leg.date) { showError("Fill in all leg fields."); return; }
+        body = { tripType: "multicity", legs, adults, preferences: prefs };
+
+      } else {
+        const from   = document.getElementById("from").value.trim().toUpperCase();
+        const to     = document.getElementById("to").value.trim().toUpperCase();
+        const date   = document.getElementById("date").value;
+        const nights = parseInt(document.getElementById("nights").value, 10);
+        const adults = parseInt(document.getElementById("adults").value, 10);
+        if (!from || !to || !date) { showError("Please fill in origin, destination, and date."); return; }
+        body = { tripType: "oneway", from, to, date, nights, adults, preferences: prefs };
+        const dep = new Date(date), ret = new Date(dep); ret.setDate(ret.getDate() + nights);
+        saveToHistory({ from, to, date, nights, adults,
+          label: dep.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + "–" +
+                 ret.toLocaleDateString("en-US",{month:"short",day:"numeric"}) });
+      }
+
       const btn = document.getElementById("searchBtn");
       btn.disabled = true; btn.textContent = "Searching…";
       showLoading();
       try {
-        const r = await fetch("/api/search", {
-          method:"POST", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({ from, to, date, nights, adults, preferences: getPrefsText() })
-        });
+        const r = await fetch("/api/search", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
         const data = await r.json(); if (!r.ok) throw new Error(data.error || "Unknown error");
-        const depart = new Date(date), ret = new Date(depart); ret.setDate(ret.getDate() + nights);
-        saveToHistory({ from, to, date, nights, adults,
-          label: depart.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + "–" +
-                 ret.toLocaleDateString("en-US",{month:"short",day:"numeric"}) });
         showResult(data);
       } catch (err) { showError(err.message); }
-      finally { btn.disabled = false; btn.textContent = "Find best flight & hotel →"; }
+      finally {
+        btn.disabled = false;
+        btn.textContent = tripType === "oneway" ? "Find best flight & hotel →"
+                        : tripType === "roundtrip" ? "Find round-trip & hotel →"
+                        : "Find multi-city flights →";
+      }
     }
 
     let _lt = null;
@@ -687,28 +893,20 @@
       return ah < dh ? `<sup class="fc-time-next">+1</sup>` : "";
     }
 
-    function showResult({ flights, winner, runnerup, reason, datesLabel, hotel, nights: n, adults: a }) {
-      stopLoading();
-      const nightCount = n || parseInt(document.getElementById("nights").value, 10);
-      const adultCount = a || parseInt(document.getElementById("adults").value, 10);
-      const fromVal    = document.getElementById("from").value.toUpperCase();
-      const toVal      = document.getElementById("to").value.toUpperCase();
-      const dateVal    = document.getElementById("date").value;
-
+    // ── Shared flight card renderer ──
+    function renderFlightCards(flights, winner, reason, fromVal, toVal, dateStr) {
       const winnerIdx = flights.findIndex(f => f.flight===winner?.flight && f.carrier===winner?.carrier);
       const sorted = [...flights];
       if (winnerIdx >= 0) { const [w] = sorted.splice(winnerIdx, 1); sorted.unshift(w); }
-
-      const flightCardsHtml = sorted.map(f => {
-        const isWinner = (f.flight===winner?.flight && f.carrier===winner?.carrier);
+      return sorted.map(f => {
+        const isWinner = f.flight===winner?.flight && f.carrier===winner?.carrier;
         const code = airlineCode(f.flight, f.carrier);
         const bookLinks = isWinner ? `
           <div class="fc-book">
             <a class="btn-book" href="${esc(f.aviasales_url || f.booking_url)}" target="_blank" rel="noopener">Book on Aviasales →</a>
-            <a class="btn-book-alt" href="https://www.google.com/flights?q=flights+from+${encodeURIComponent(fromVal)}+to+${encodeURIComponent(toVal)}+on+${encodeURIComponent(dateVal)}" target="_blank" rel="noopener">Seat map ↗</a>
+            <a class="btn-book-alt" href="https://www.google.com/flights?q=flights+from+${encodeURIComponent(fromVal)}+to+${encodeURIComponent(toVal)}+on+${encodeURIComponent(dateStr)}" target="_blank" rel="noopener">Google Flights ↗</a>
           </div>` : "";
         const reasonHtml = isWinner && reason ? `<div class="fc-reason">${esc(reason)}</div>` : "";
-
         return `
         <div class="flight-card ${isWinner ? "winner" : ""}">
           <div class="fc-top">
@@ -723,26 +921,25 @@
             </div>
           </div>
           <div class="fc-route">
-            <div class="fc-time-block">
-              <div class="fc-time">${esc(f.departs || "—")}</div>
-            </div>
+            <div class="fc-time-block"><div class="fc-time">${esc(f.departs||"—")}</div></div>
             <div class="fc-route-mid">
               <div class="fc-duration">${esc(f.duration)}</div>
               ${routeBar(f.stops ?? 0)}
             </div>
             <div class="fc-time-block right">
-              <div class="fc-time">${esc(f.arrives || "—")}${nextDayMark(f.departs, f.arrives)}</div>
+              <div class="fc-time">${esc(f.arrives||"—")}${nextDayMark(f.departs, f.arrives)}</div>
             </div>
           </div>
           <div class="fc-tags">${layoverTags(f)}</div>
-          ${reasonHtml}
-          ${bookLinks}
+          ${reasonHtml}${bookLinks}
         </div>`;
       }).join("");
+    }
 
-      // Hotel
-      const otherHotels = hotel ? hotel.hotels.filter(h => h.name !== hotel.winner.name) : [];
-      const otherHotelRows = otherHotels.map(h => `
+    // ── Hotel card renderer ──
+    function renderHotelCard(hotel, nightCount) {
+      const others = hotel.hotels.filter(h => h.name !== hotel.winner.name);
+      const otherRows = others.map(h => `
         <div class="hotel-option">
           <div>
             <div class="hotel-option-name">${esc(h.name)}</div>
@@ -752,10 +949,12 @@
               <span>${esc(h.area)}</span>
             </div>
           </div>
-          <div class="hotel-option-price">$${h.price_per_night_usd}<span style="font-size:0.7rem;font-weight:400;color:var(--text3)">/nt</span></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            <div class="hotel-option-price">$${h.price_per_night_usd}<span style="font-size:0.7rem;font-weight:400;color:var(--text3)">/nt</span></div>
+            <a href="${esc(h.booking_url)}" target="_blank" rel="noopener" style="font-size:0.7rem;color:var(--accent2);text-decoration:none">Book →</a>
+          </div>
         </div>`).join("");
-
-      const hotelHtml = hotel ? `
+      return `
         <div class="hotel-card">
           <div class="section-hdr">Hotel · ${esc(hotel.city)} <span class="section-hdr-badge">${nightCount} nights</span></div>
           <div class="hotel-name">${esc(hotel.winner.name)}</div>
@@ -770,35 +969,99 @@
           </div>
           <div class="hotel-reason">${esc(hotel.reason)}</div>
           <a class="btn-book" href="${esc(hotel.winner.booking_url)}" target="_blank" rel="noopener" style="display:inline-flex;text-decoration:none">Book →</a>
-          ${otherHotelRows.length ? `<div class="divider"></div><div class="other-options-label">Other options</div>${otherHotelRows}` : ""}
-        </div>` : "";
+          ${otherRows.length ? `<div class="divider"></div><div class="other-options-label">Other options</div>${otherRows}` : ""}
+        </div>`;
+    }
 
+    // ── Trip total card ──
+    function renderTotal(label, amount, breakdown, perPerson) {
+      return `
+        <div class="trip-total-card">
+          <div class="total-label">${esc(label)}</div>
+          <div class="total-amount">$${amount.toLocaleString()}</div>
+          <div class="total-breakdown">${esc(breakdown)}</div>
+          ${perPerson ? `<div class="total-per">≈ $${perPerson.toLocaleString()} per person</div>` : ""}
+        </div>`;
+    }
+
+    // ── Result dispatchers ──
+    function showResult(data) {
+      stopLoading();
+      if (data.tripType === "roundtrip")  showRoundTripResult(data);
+      else if (data.tripType === "multicity") showMultiCityResult(data);
+      else showOneWayResult(data);
+    }
+
+    function showOneWayResult({ flights, winner, reason, datesLabel, hotel, nights: n, adults: a }) {
+      const nightCount = n, adultCount = a;
+      const fromVal = document.getElementById("from").value.toUpperCase();
+      const toVal   = document.getElementById("to").value.toUpperCase();
+      const dateVal = document.getElementById("date").value;
+      const cards   = renderFlightCards(flights, winner, reason, fromVal, toVal, dateVal);
+      const hotelHtml = hotel ? renderHotelCard(hotel, nightCount) : "";
       const flightTotal = (winner?.price_usd ?? 0) * adultCount;
       const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
       const tripTotal   = flightTotal + hotelTotal;
-
-      const totalHtml = `
-        <div class="trip-total-card">
-          <div class="total-label">Estimated total</div>
-          <div class="total-amount">$${tripTotal.toLocaleString()}</div>
-          <div class="total-breakdown">
-            ${adultCount > 1 ? adultCount + "× " : ""}$${winner?.price_usd ?? 0} flight${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}
-          </div>
-          ${adultCount > 1 ? `<div class="total-per">≈ $${Math.round(tripTotal/adultCount).toLocaleString()} per person</div>` : ""}
-        </div>`;
-
+      const breakdown   = `${adultCount > 1 ? adultCount+"× " : ""}$${winner?.price_usd ?? 0} flight${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}`;
       document.getElementById("result").innerHTML = `
         <div class="results-grid">
           <div>
-            <div class="section-hdr">
-              Flights · ${esc(datesLabel)}
-              <span class="section-hdr-badge">${flights.length} options</span>
-            </div>
-            ${flightCardsHtml}
+            <div class="section-hdr">Flights · ${esc(datesLabel)} <span class="section-hdr-badge">${flights.length} options</span></div>
+            ${cards}
           </div>
           <div class="right-col">
             ${hotelHtml}
-            ${totalHtml}
+            ${renderTotal("Estimated total", tripTotal, breakdown, adultCount > 1 ? Math.round(tripTotal/adultCount) : 0)}
+          </div>
+        </div>`;
+    }
+
+    function showRoundTripResult({ outbound, return: ret, hotel, nights: n, adults: a }) {
+      const nightCount = n, adultCount = a;
+      const fromVal  = document.getElementById("from").value.toUpperCase();
+      const toVal    = document.getElementById("to").value.toUpperCase();
+      const departD  = document.getElementById("rtDepart").value;
+      const returnD  = document.getElementById("rtReturn").value;
+      const outCards = renderFlightCards(outbound.flights, outbound.winner, outbound.reason, fromVal, toVal, departD);
+      const retCards = renderFlightCards(ret.flights, ret.winner, ret.reason, toVal, fromVal, returnD);
+      const hotelHtml = hotel ? renderHotelCard(hotel, nightCount) : "";
+      const flightTotal = ((outbound.winner?.price_usd ?? 0) + (ret.winner?.price_usd ?? 0)) * adultCount;
+      const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
+      const tripTotal   = flightTotal + hotelTotal;
+      const breakdown   = `${adultCount > 1 ? adultCount+"× " : ""}($${outbound.winner?.price_usd ?? 0} out + $${ret.winner?.price_usd ?? 0} return)${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}`;
+      document.getElementById("result").innerHTML = `
+        <div class="results-grid">
+          <div>
+            <div class="section-hdr">Outbound · ${esc(fromVal)}→${esc(toVal)} · ${esc(fmtDate(departD))} <span class="section-hdr-badge">${outbound.flights.length} options</span></div>
+            ${outCards}
+            <div class="section-hdr" style="margin-top:24px">Return · ${esc(toVal)}→${esc(fromVal)} · ${esc(fmtDate(returnD))} <span class="section-hdr-badge">${ret.flights.length} options</span></div>
+            ${retCards}
+          </div>
+          <div class="right-col">
+            ${hotelHtml}
+            ${renderTotal("Round-trip total", tripTotal, breakdown, adultCount > 1 ? Math.round(tripTotal/adultCount) : 0)}
+          </div>
+        </div>`;
+    }
+
+    function showMultiCityResult({ legs, adults: a }) {
+      const adultCount = a;
+      const legsHtml = legs.map((leg, i) => {
+        const cards = renderFlightCards(leg.flights, leg.winner, leg.reason, leg.from, leg.to, leg.date);
+        return `
+          <div class="section-hdr" ${i > 0 ? 'style="margin-top:24px"' : ''}>
+            Leg ${i+1} · ${esc(leg.from)}→${esc(leg.to)} · ${esc(fmtDate(leg.date))}
+            <span class="section-hdr-badge">${leg.flights.length} options</span>
+          </div>
+          ${cards}`;
+      }).join("");
+      const total = legs.reduce((s, l) => s + (l.winner?.price_usd ?? 0), 0) * adultCount;
+      const breakdown = legs.map(l => `${l.from}→${l.to} $${l.winner?.price_usd ?? 0}`).join(" + ") + (adultCount > 1 ? ` × ${adultCount}` : "");
+      document.getElementById("result").innerHTML = `
+        <div style="width:100%;max-width:920px">
+          ${legsHtml}
+          <div style="margin-top:16px;max-width:380px">
+            ${renderTotal("Multi-city total · flights only", total, breakdown, adultCount > 1 ? Math.round(total/adultCount) : 0)}
           </div>
         </div>`;
     }
