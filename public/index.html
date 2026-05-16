@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Advisor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f11;
+      color: #e8e8ec;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px 80px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #888;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    input {
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      color: #e8e8ec;
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      transition: border-color 0.15s;
+      outline: none;
+      width: 100%;
+    }
+
+    input:focus { border-color: #52525b; }
+    input::placeholder { color: #3f3f46; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .row-three {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px;
+      background: #fff;
+      color: #09090b;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.88; }
+    button:disabled { opacity: 0.4; cursor: default; }
+
+    /* Result */
+    #result { width: 100%; max-width: 520px; margin-top: 24px; }
+
+    .result-card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 24px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .result-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #52525b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .winner-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .winner-details {
+      font-size: 0.875rem;
+      color: #a1a1aa;
+      margin-bottom: 16px;
+    }
+
+    .reason {
+      font-size: 0.875rem;
+      color: #d4d4d8;
+      line-height: 1.6;
+      padding: 12px 14px;
+      background: #09090b;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .book-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #22c55e;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+
+    .book-btn:hover { opacity: 0.85; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #27272a;
+      margin: 20px 0;
+    }
+
+    .runnerup-label {
+      font-size: 0.75rem;
+      color: #52525b;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .runnerup-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .runnerup-name {
+      font-size: 0.9rem;
+      color: #71717a;
+    }
+
+    .runnerup-price {
+      font-size: 0.9rem;
+      color: #71717a;
+    }
+
+    .all-flights {
+      margin-top: 24px;
+    }
+
+    .all-flights summary {
+      font-size: 0.8rem;
+      color: #52525b;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+
+    .all-flights summary::-webkit-details-marker { display: none; }
+    .all-flights summary::before { content: "▸ "; }
+    details[open] summary::before { content: "▾ "; }
+
+    .flight-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.8rem;
+    }
+
+    .flight-table th {
+      text-align: left;
+      color: #52525b;
+      font-weight: 500;
+      padding: 4px 8px 8px;
+      border-bottom: 1px solid #27272a;
+    }
+
+    .flight-table td {
+      padding: 8px 8px;
+      color: #71717a;
+      border-bottom: 1px solid #1c1c1f;
+    }
+
+    .flight-table tr.is-winner td { color: #a1a1aa; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #1c2e22;
+      color: #4ade80;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    /* Loading */
+    .loading-card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 32px 28px;
+      text-align: center;
+    }
+
+    .loading-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.875rem;
+      color: #3f3f46;
+      transition: color 0.3s;
+    }
+
+    .step.active { color: #a1a1aa; }
+    .step.done   { color: #52525b; }
+
+    .step-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+
+    .spinner-small {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #3f3f46;
+      border-top-color: #71717a;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .step-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #27272a;
+      margin: 0 4px;
+    }
+
+    .step.active .step-dot { background: #52525b; }
+    .step.done   .step-dot { background: #22c55e; }
+
+    .error-msg {
+      background: #1c1010;
+      border: 1px solid #3f1515;
+      border-radius: 10px;
+      padding: 16px;
+      color: #f87171;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Travel Advisor</h1>
+  <p class="subtitle">Get a single, opinionated recommendation — no endless list.</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>From</label>
+        <input id="from" type="text" placeholder="TPE" maxlength="3">
+      </div>
+      <div class="field">
+        <label>To</label>
+        <input id="to" type="text" placeholder="NRT" maxlength="3">
+      </div>
+    </div>
+    <div class="row-three">
+      <div class="field">
+        <label>Departure date</label>
+        <input id="date" type="date">
+      </div>
+      <div class="field">
+        <label>Nights</label>
+        <input id="nights" type="number" value="4" min="1" max="30">
+      </div>
+      <div class="field">
+        <label>Travelers</label>
+        <input id="adults" type="number" value="1" min="1" max="9">
+      </div>
+    </div>
+    <button id="searchBtn" onclick="search()">Find best flight</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    // Set default date to 30 days from now
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    document.getElementById("date").value = d.toISOString().slice(0, 10);
+
+    async function search() {
+      const from   = document.getElementById("from").value.trim().toUpperCase();
+      const to     = document.getElementById("to").value.trim().toUpperCase();
+      const date   = document.getElementById("date").value;
+      const nights = parseInt(document.getElementById("nights").value, 10);
+      const adults = parseInt(document.getElementById("adults").value, 10);
+
+      if (!from || !to || !date) {
+        showError("Please fill in origin, destination, and date.");
+        return;
+      }
+
+      const btn = document.getElementById("searchBtn");
+      btn.disabled = true;
+      btn.textContent = "Searching…";
+      showLoading();
+
+      try {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from, to, date, nights, adults }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+        showResult(data);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Find best flight";
+      }
+    }
+
+    let _loadingTimer = null;
+
+    const STEPS = [
+      { label: "Looking up routes and airlines",   delay: 0    },
+      { label: "Generating realistic flight options", delay: 6000  },
+      { label: "Comparing prices and schedules",   delay: 14000 },
+      { label: "Picking the best option",          delay: 22000 },
+    ];
+
+    function showLoading() {
+      if (_loadingTimer) clearInterval(_loadingTimer);
+
+      document.getElementById("result").innerHTML = `
+        <div class="result-card loading-card">
+          <div class="loading-steps" id="loadingSteps">
+            ${STEPS.map((s, i) => `
+              <div class="step" id="step${i}" data-delay="${s.delay}">
+                <span class="step-icon"><span class="step-dot"></span></span>
+                <span>${s.label}</span>
+              </div>`).join("")}
+          </div>
+        </div>`;
+
+      const start = Date.now();
+
+      function tick() {
+        const elapsed = Date.now() - start;
+        let activeSet = false;
+        for (let i = STEPS.length - 1; i >= 0; i--) {
+          const el = document.getElementById("step" + i);
+          if (!el) continue;
+          if (elapsed >= STEPS[i].delay) {
+            if (!activeSet) {
+              el.className = "step active";
+              el.querySelector(".step-icon").innerHTML = '<span class="spinner-small"></span>';
+              activeSet = true;
+            } else {
+              el.className = "step done";
+              el.querySelector(".step-icon").innerHTML = "✓";
+            }
+          }
+        }
+      }
+
+      tick();
+      _loadingTimer = setInterval(tick, 500);
+    }
+
+    function stopLoading() {
+      if (_loadingTimer) { clearInterval(_loadingTimer); _loadingTimer = null; }
+    }
+
+    function showError(msg) {
+      stopLoading();
+      document.getElementById("result").innerHTML = `
+        <div class="error-msg">${escHtml(msg)}</div>`;
+    }
+
+    function showResult({ flights, winner, runnerup, reason, datesLabel }) {
+      stopLoading();
+      const winnerIdx = flights.indexOf(winner);
+
+      const rows = flights.map((f, i) => `
+        <tr class="${i === winnerIdx ? "is-winner" : ""}">
+          <td>${escHtml(f.carrier)} ${escHtml(f.flight)}${i === winnerIdx ? '<span class="badge">pick</span>' : ""}</td>
+          <td>${escHtml(f.departs)}–${escHtml(f.arrives)}</td>
+          <td>${escHtml(f.duration)}</td>
+          <td>${f.stops === 0 ? "direct" : f.stops + " stop"}</td>
+          <td>$${f.price_usd}</td>
+        </tr>`).join("");
+
+      document.getElementById("result").innerHTML = `
+        <div class="result-card">
+          <div class="result-label">Recommended flight · ${escHtml(datesLabel)}</div>
+          <div class="winner-name">${escHtml(winner.carrier)} ${escHtml(winner.flight)}</div>
+          <div class="winner-details">
+            ${escHtml(winner.departs)}–${escHtml(winner.arrives)} &nbsp;·&nbsp;
+            ${escHtml(winner.duration)} &nbsp;·&nbsp;
+            ${winner.stops === 0 ? "direct" : winner.stops + " stop"} &nbsp;·&nbsp;
+            <strong>$${winner.price_usd}</strong>
+          </div>
+          <div class="reason">${escHtml(reason)}</div>
+          <a class="book-btn" href="${escHtml(winner.booking_url)}" target="_blank" rel="noopener">
+            Book now →
+          </a>
+          <hr class="divider">
+          <div class="runnerup-label">Runner-up</div>
+          <div class="runnerup-row">
+            <span class="runnerup-name">${escHtml(runnerup.carrier)} ${escHtml(runnerup.flight)} · ${escHtml(runnerup.departs)}–${escHtml(runnerup.arrives)} · ${escHtml(runnerup.duration)}</span>
+            <span class="runnerup-price">$${runnerup.price_usd}</span>
+          </div>
+          <details class="all-flights">
+            <summary>All options (${flights.length})</summary>
+            <table class="flight-table">
+              <thead>
+                <tr>
+                  <th>Flight</th><th>Times</th><th>Duration</th><th>Stops</th><th>Price</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </details>
+        </div>`;
+    }
+
+    function escHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // Allow Enter key to trigger search
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") search();
+    });
+  </script>
+</body>
+</html>
