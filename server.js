@@ -161,18 +161,26 @@ Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "
 async function enrichAndRecommend(realFlights, { from, to, date, adults, preferences = "" }) {
   const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
 
-  // Build price anchor list (real prices — use as constraints, not suggestions)
+  // Build price anchor list — include airline code and departure time when available
   const anchors = realFlights
     .filter(f => f.price_usd)
-    .slice(0, 6)
-    .map(f => `$${f.price_usd} / ${f.stops === 0 ? "direct" : f.stops + " stop(s)"} / ~${f.duration ?? "?"}`)
+    .slice(0, 8)
+    .map(f => {
+      const parts = [`$${f.price_usd}`];
+      parts.push(f.stops === 0 ? "direct" : `${f.stops} stop(s)`);
+      if (f.duration) parts.push(`~${f.duration}`);
+      if (f.carrier) parts.push(`airline: ${f.carrier}`);
+      if (f.departs) parts.push(`departs: ${f.departs}`);
+      if (f.depart_date && f.depart_date !== date) parts.push(`(date: ${f.depart_date})`);
+      return parts.join(" / ");
+    })
     .join("\n");
 
   const prompt = `You are a flight scheduling expert. Real cached prices for ${from}→${to} around ${date}:
 
 ${anchors}
 
-Using these price points as constraints, generate 6 diverse one-way flight options for ${adults} adult${adults > 1 ? "s" : ""} departing ${date}. Cover distinct archetypes:
+Using these price points as hard constraints (do not invent lower prices), generate 6 diverse one-way flight options for ${adults} adult${adults > 1 ? "s" : ""} departing ${date}. Where a real airline is shown above, use that airline for the matching price tier. Cover distinct archetypes:
 1. Cheapest (match or beat the lowest cached price — may have 2 stops)
 2. Fastest direct
 3. Best value: good price + total under 16h
