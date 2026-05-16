@@ -95,7 +95,11 @@ async function getHotels({ to, date, nights, adults }) {
 
   const prompt = `You are a hotel expert. Generate 3 realistic hotel options ${stayType} for destination ${to}, check-in ${date}, check-out ${checkOutStr}, for ${adults} adult${adults > 1 ? "s" : ""}.
 
-Use real hotels that exist in this city. Use realistic 2026 USD prices per night. Include: a budget option, a solid mid-range pick, and a premium hotel.
+Use real hotels that exist in this city. Use realistic 2026 USD prices per night. You MUST include exactly three tiers with a meaningful price spread:
+- Budget: a clean, well-rated option (aim for the lower 25% of typical prices for this city)
+- Mid-range: a comfortable 3–4 star in a good location (aim for the middle 50%)
+- Premium: a notable 4–5 star hotel (aim for the upper 25%)
+The three prices must be clearly distinct — no two options should be within 20% of each other.
 
 Respond with ONLY valid JSON — no markdown:
 {
