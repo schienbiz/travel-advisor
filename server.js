@@ -3,9 +3,7 @@ import { config } from "dotenv";
 config();
 
 import express from "express";
-import Anthropic from "@anthropic-ai/sdk";
-import { execSync } from "child_process";
-import { existsSync } from "fs";
+import OpenAI from "openai";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { searchFlights } from "./src/tequila.js";
@@ -18,25 +16,18 @@ const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, "public")));
 
-// Call Claude via SDK (Render / ANTHROPIC_API_KEY) or CLI (local dev)
-async function askClaude(prompt) {
-  if (process.env.ANTHROPIC_API_KEY) {
-    const client = new Anthropic();
-    const msg = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      messages: [{ role: "user", content: prompt }],
-    });
-    return msg.content[0].text;
-  }
+const nvidia = new OpenAI({
+  apiKey: process.env.NVIDIA_API_KEY,
+  baseURL: "https://integrate.api.nvidia.com/v1",
+});
 
-  const bin = existsSync("/Users/atungc/.local/bin/claude")
-    ? "/Users/atungc/.local/bin/claude"
-    : "claude";
-  return execSync(`${bin} --model claude-haiku-4-5-20251001 -p ${JSON.stringify(prompt)}`, {
-    encoding: "utf8",
-    timeout: 150000,
-  }).trim();
+async function askClaude(prompt) {
+  const resp = await nvidia.chat.completions.create({
+    model: "meta/llama-3.3-70b-instruct",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: prompt }],
+  });
+  return resp.choices[0].message.content;
 }
 
 function parseJson(raw) {
