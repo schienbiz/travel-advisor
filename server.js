@@ -29,9 +29,9 @@ async function askClaude(prompt) {
   const bin = existsSync("/Users/atungc/.local/bin/claude")
     ? "/Users/atungc/.local/bin/claude"
     : "claude";
-  return execSync(`${bin} -p ${JSON.stringify(prompt)}`, {
+  return execSync(`${bin} --model claude-haiku-4-5-20251001 -p ${JSON.stringify(prompt)}`, {
     encoding: "utf8",
-    timeout: 90000,
+    timeout: 150000,
   }).trim();
 }
 
@@ -76,11 +76,11 @@ Rules:
 });
 
 async function getFlights({ from, to, date, adults, preferences = "" }) {
-  // 1. Try Travelpayouts (real prices, last 48h)
+  // 1. Try Travelpayouts (real prices, last 48h) — enrich + supplement via AI
   if (process.env.TRAVELPAYOUTS_TOKEN) {
     try {
       const flights = await getFlightPrices({ from, to, date, token: process.env.TRAVELPAYOUTS_TOKEN });
-      if (flights?.length) return await recommendFlights(flights, { from, to, date, adults });
+      if (flights?.length >= 3) return await enrichAndRecommend(flights, { from, to, date, adults, preferences });
     } catch { /* fall through */ }
   }
 
@@ -92,7 +92,7 @@ async function getFlights({ from, to, date, adults, preferences = "" }) {
         clientId: process.env.AMADEUS_CLIENT_ID,
         clientSecret: process.env.AMADEUS_CLIENT_SECRET,
       });
-      if (flights?.length) return await recommendFlights(flights, { from, to, date, adults });
+      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences });
     } catch { /* fall through */ }
   }
 
@@ -100,19 +100,25 @@ async function getFlights({ from, to, date, adults, preferences = "" }) {
   if (process.env.TEQUILA_API_KEY) {
     try {
       const flights = await searchFlights({ from, to, date, adults, apiKey: process.env.TEQUILA_API_KEY });
-      if (flights?.length) return await recommendFlights(flights, { from, to, date, adults });
+      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences });
     } catch { /* fall through */ }
   }
 
-  // 4. AI-generated flights + recommendation (with layover details)
+  // 4. AI-generated flights + recommendation
   const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
   const prompt = `You are a personal travel advisor and flight data expert.
 
-Generate 4 realistic one-way flight options from ${from} to ${to} on ${date} for ${adults} adult${adults > 1 ? "s" : ""}, then pick the best one.
+Generate 6 diverse one-way flight options from ${from} to ${to} on ${date} for ${adults} adult${adults > 1 ? "s" : ""}, then pick the best one.
 
-Use real airlines that fly this route. Use realistic 2026 times and USD prices. Include a mix: cheapest, fastest, a premium carrier, and optionally one with a stop.${prefLine}
+Cover these distinct archetypes — use real airlines that actually operate this route:
+1. Cheapest option (may have 2 stops if it saves significantly)
+2. Fastest direct flight
+3. Best value: reasonable price + total trip under 16h
+4. Premium/full-service nonstop or 1 short stop
+5. Asian hub connector (via HKG/SIN/BKK/NRT/ICN) — layover ≥2h
+6. Alternative routing (different hub, LCC, or minority carrier on this route)${prefLine}
 
-For flights with stops, include full layover details.
+Use realistic 2026 USD prices and departure times. For stopped flights, include layover city and duration (aim ≥2h).
 
 Respond with ONLY valid JSON — no markdown:
 {
@@ -134,13 +140,11 @@ Respond with ONLY valid JSON — no markdown:
   "reason": "One sentence with real numbers explaining the pick."
 }
 
-For a flight with 1 stop, layovers looks like:
-[{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
+Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
 
   const raw = await askClaude(prompt);
   const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
 
-  // Always attach an Aviasales booking link (real prices, no API key needed)
   const enriched = flights.map(f => ({
     ...f,
     layovers: f.layovers ?? [],
@@ -150,25 +154,67 @@ For a flight with 1 stop, layovers looks like:
   return { flights: enriched, winner: enriched[wi], runnerup: enriched[Math.min(ri, enriched.length - 1)], reason };
 }
 
-async function recommendFlights(flights, { from, to, date, adults } = {}) {
-  // Enrich with Aviasales links
-  flights = flights.map(f => ({
-    ...f,
-    layovers: f.layovers ?? [],
-    aviasales_url: from ? aviasalesUrl(from, to, date, adults) : f.booking_url,
-  }));
-  const prompt = `You are a personal travel advisor. Pick the best flight. Make a call — no hedging.
+// Use real cached prices as anchors, then have AI assign real airlines/times/layovers
+// and supplement to 6 diverse options, then pick a winner.
+async function enrichAndRecommend(realFlights, { from, to, date, adults, preferences = "" }) {
+  const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
 
-FLIGHTS:
-${flights.map((f, i) => `[${i}] ${f.carrier} ${f.flight}: departs ${f.departs}, arrives ${f.arrives} (${f.duration}), $${f.price_usd}, ${f.stops === 0 ? "direct" : f.stops + " stop(s)"}`).join("\n")}
+  // Build price anchor list (real prices — use as constraints, not suggestions)
+  const anchors = realFlights
+    .filter(f => f.price_usd)
+    .slice(0, 6)
+    .map(f => `$${f.price_usd} / ${f.stops === 0 ? "direct" : f.stops + " stop(s)"} / ~${f.duration ?? "?"}`)
+    .join("\n");
 
-Respond with ONLY valid JSON:
-{ "winner_index": 0, "runnerup_index": 1, "reason": "One sentence with real numbers." }`.trim();
+  const prompt = `You are a flight scheduling expert. Real cached prices for ${from}→${to} around ${date}:
+
+${anchors}
+
+Using these price points as constraints, generate 6 diverse one-way flight options for ${adults} adult${adults > 1 ? "s" : ""} departing ${date}. Cover distinct archetypes:
+1. Cheapest (match or beat the lowest cached price — may have 2 stops)
+2. Fastest direct
+3. Best value: good price + total under 16h
+4. Premium nonstop (full-service carrier)
+5. Asian hub connector (via HKG/SIN/BKK/NRT/ICN — layover ≥2h)
+6. Alternative routing (different hub, LCC, or lesser-known carrier)${prefLine}
+
+Assign real airlines that actually fly ${from}→${to}. Use realistic 2026 departure/arrival times (HH:MM).
+
+Respond with ONLY valid JSON — no markdown:
+{
+  "flights": [
+    {
+      "carrier": "Airline Name",
+      "flight": "XX000",
+      "departs": "HH:MM",
+      "arrives": "HH:MM",
+      "duration": "XhYYm",
+      "stops": 0,
+      "price_usd": 000,
+      "booking_url": "https://www.airline.com",
+      "layovers": []
+    }
+  ],
+  "winner_index": 0,
+  "runnerup_index": 1,
+  "reason": "One sentence with real numbers."
+}
+
+Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
 
   const raw = await askClaude(prompt);
-  const { winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
-  return { flights, winner: flights[wi], runnerup: flights[Math.min(ri, flights.length - 1)], reason };
+  const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
+
+  const enriched = flights.map(f => ({
+    ...f,
+    layovers: f.layovers ?? [],
+    aviasales_url: aviasalesUrl(from, to, date, adults),
+  }));
+
+  return { flights: enriched, winner: enriched[wi], runnerup: enriched[Math.min(ri, enriched.length - 1)], reason };
 }
+
+
 
 async function getHotels({ to, date, nights, adults, preferences = "" }) {
   const checkOut = new Date(date);

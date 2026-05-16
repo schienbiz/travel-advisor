@@ -7,345 +7,450 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:         #07070d;
+      --surface:    #0d0d18;
+      --surface2:   #12121f;
+      --surface3:   #17172a;
+      --border:     #1e1e32;
+      --border2:    #2a2a42;
+      --accent:     #6366f1;
+      --accent2:    #818cf8;
+      --accent-dim: rgba(99,102,241,0.12);
+      --green:      #22c55e;
+      --green-dim:  rgba(34,197,94,0.1);
+      --orange:     #f97316;
+      --red:        #ef4444;
+      --gold:       #f59e0b;
+      --text:       #f0f0fa;
+      --text2:      #8b8ba8;
+      --text3:      #44445e;
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-winner: 0 0 0 1px rgba(99,102,241,0.35), 0 12px 40px rgba(99,102,241,0.18);
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f0f11;
-      color: #e8e8ec;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 70% 35% at 50% -5%, rgba(99,102,241,0.14) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 20% at 80% 10%, rgba(129,140,248,0.05) 0%, transparent 50%);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 48px 16px 80px;
+      padding: 44px 16px 96px;
     }
 
-    h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; color: #fff; }
-    .subtitle { font-size: 0.875rem; color: #888; margin-bottom: 32px; }
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 36px; }
+    .header-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    }
+    .header h1 { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; margin-bottom: 6px; }
+    .header p { font-size: 0.875rem; color: var(--text3); letter-spacing: 0.01em; }
 
+    /* ── Card ── */
     .card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 22px;
       padding: 28px;
-      width: 100%;
-      max-width: 520px;
+      width: 100%; max-width: 580px;
+      box-shadow: var(--shadow-card);
     }
 
-    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-
+    /* ── Fields ── */
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
     label {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      font-size: 0.68rem; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.1em;
     }
-
     input, select {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      color: #e8e8ec;
-      font-size: 0.95rem;
-      padding: 10px 14px;
-      transition: border-color 0.15s;
-      outline: none;
-      width: 100%;
-      min-height: 44px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text); font-size: 0.95rem;
+      padding: 11px 14px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none; width: 100%; min-height: 44px;
+      font-family: inherit;
     }
-
-    input:focus, select:focus { border-color: #52525b; }
-    input::placeholder { color: #3f3f46; }
-    select option { background: #18181b; }
-
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .row-three { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
-
-    button {
-      width: 100%;
-      margin-top: 8px;
-      padding: 14px;
-      background: #fff;
-      color: #09090b;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
-      min-height: 48px;
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
     }
+    input::placeholder { color: var(--text3); }
+    select option { background: var(--surface2); }
 
-    button:hover { opacity: 0.88; }
-    button:disabled { opacity: 0.4; cursor: default; }
+    /* ── Route row ── */
+    .route-row { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 8px; align-items: end; margin-bottom: 14px; }
+    .swap-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 50%; color: var(--text3); cursor: pointer;
+      width: 36px; height: 36px; min-height: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; transition: all 0.2s; padding: 0; margin-bottom: 2px;
+    }
+    .swap-btn:hover { border-color: var(--accent); color: var(--accent); transform: rotate(180deg); opacity: 1; }
+    .iata-input { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 
-    /* NL divider */
+    .row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      width: 100%; margin-top: 8px; padding: 15px;
+      background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+      color: #fff; border: none; border-radius: 13px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      min-height: 50px; letter-spacing: -0.01em;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover { opacity: 0.92; box-shadow: 0 6px 28px rgba(99,102,241,0.45); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
+
+    .btn-parse {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 11px; color: var(--text2);
+      font-size: 0.85rem; font-weight: 500; cursor: pointer;
+      padding: 10px 16px; min-height: 44px; white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-parse:hover { border-color: var(--border2); color: var(--text); opacity: 1; }
+    .btn-parse:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── NL ── */
+    .nl-row { display: flex; gap: 8px; margin-bottom: 6px; }
     .nl-divider {
-      text-align: center;
-      font-size: 0.72rem;
-      color: #3f3f46;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin: 4px 0 16px;
-      position: relative;
+      text-align: center; font-size: 0.68rem; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin: 10px 0 18px; position: relative;
     }
     .nl-divider::before, .nl-divider::after {
       content: ""; position: absolute; top: 50%;
-      width: 38%; height: 1px; background: #27272a;
+      width: 42%; height: 1px; background: var(--border);
     }
-    .nl-divider::before { left: 0; }
-    .nl-divider::after  { right: 0; }
+    .nl-divider::before { left: 0; } .nl-divider::after { right: 0; }
 
-    /* Preferences */
-    .prefs-details { margin-top: 20px; border-top: 1px solid #27272a; padding-top: 16px; }
+    /* ── Prefs ── */
+    .prefs-details { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
     .prefs-details > summary {
-      font-size: 0.8rem;
-      color: #52525b;
-      cursor: pointer;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      user-select: none;
+      font-size: 0.8rem; color: var(--text3); cursor: pointer;
+      list-style: none; display: flex; align-items: center; gap: 6px; user-select: none;
     }
     .prefs-details > summary::-webkit-details-marker { display: none; }
-    .prefs-details > summary::after { content: "▸"; font-size: 0.65rem; }
-    .prefs-details[open] > summary::after { content: "▾"; }
+    .prefs-details > summary::after { content: "›"; font-size: 1rem; line-height: 1; transition: transform 0.2s; }
+    .prefs-details[open] > summary::after { content: "‹"; }
     .prefs-body { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .prefs-row { display: flex; gap: 12px; align-items: flex-end; }
-
+    .prefs-row { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
     .toggle-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      color: #a1a1aa;
-      white-space: nowrap;
-      padding: 10px 0;
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      font-size: 0.85rem; color: var(--text2); white-space: nowrap; padding: 4px 0;
     }
-    .toggle-wrap input[type=checkbox] { width: 16px; height: 16px; min-height: 0; accent-color: #22c55e; cursor: pointer; }
+    .toggle-wrap input[type=checkbox] { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); cursor: pointer; }
 
-    /* History */
-    #historySection {
-      width: 100%;
-      max-width: 520px;
-      margin-top: 12px;
-      display: none;
-    }
-    .history-label {
-      font-size: 0.7rem;
-      color: #3f3f46;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 8px;
-    }
-    .history-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
+    /* ── History ── */
+    #historySection { width: 100%; max-width: 580px; margin-top: 14px; display: none; }
+    .history-label { font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .history-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .history-chip {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 20px;
-      color: #71717a;
-      font-size: 0.78rem;
-      padding: 6px 12px;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s;
-      min-height: 0;
-      width: auto;
-      margin: 0;
-      font-weight: 400;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--text3); font-size: 0.78rem;
+      padding: 6px 14px; cursor: pointer; transition: all 0.15s;
+      min-height: 0; width: auto; margin: 0; font-weight: 400;
     }
-    .history-chip:hover { border-color: #52525b; color: #a1a1aa; opacity: 1; }
+    .history-chip:hover { border-color: var(--accent); color: var(--text2); opacity: 1; }
     .history-clear {
-      background: none;
-      border: none;
-      color: #3f3f46;
-      font-size: 0.75rem;
-      cursor: pointer;
-      padding: 4px;
-      min-height: 0;
-      width: auto;
-      margin: 0;
-      font-weight: 400;
+      background: none; border: none; color: var(--text3); font-size: 0.72rem;
+      cursor: pointer; padding: 4px; min-height: 0; width: auto; margin: 0;
     }
-    .history-clear:hover { color: #71717a; opacity: 1; }
+    .history-clear:hover { color: var(--text2); opacity: 1; }
 
-    /* Result */
-    #result { width: 100%; max-width: 520px; margin-top: 24px; }
+    /* ── Results ── */
+    #result { width: 100%; max-width: 920px; margin-top: 32px; }
+    .results-grid { display: grid; grid-template-columns: 1fr 310px; gap: 14px; align-items: start; }
 
-    .result-card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 24px;
-      animation: fadeIn 0.25s ease;
+    .section-hdr {
+      font-size: 0.68rem; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-hdr-badge {
+      background: var(--surface3); border: 1px solid var(--border);
+      color: var(--text3); font-size: 0.65rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px; letter-spacing: 0.05em;
     }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-    .result-label { font-size: 0.7rem; font-weight: 600; color: #52525b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
-    .winner-name { font-size: 1.35rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 4px; }
-    .winner-details { font-size: 0.875rem; color: #a1a1aa; margin-bottom: 16px; }
-
-    .reason {
-      font-size: 0.875rem;
-      color: #d4d4d8;
-      line-height: 1.6;
-      padding: 12px 14px;
-      background: #09090b;
-      border-radius: 8px;
-      margin-bottom: 16px;
+    /* ── Flight cards ── */
+    .flight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 20px;
+      margin-bottom: 10px;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
+    }
+    .flight-card:last-child { margin-bottom: 0; }
+    .flight-card:not(.winner):hover {
+      transform: translateY(-1px);
+      border-color: var(--border2);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    }
+    .flight-card.winner {
+      background: linear-gradient(140deg, #0f0f24 0%, #10102a 60%, #0d0d20 100%);
+      border-color: rgba(99,102,241,0.45);
+      box-shadow: var(--shadow-winner);
+    }
+    .flight-card.winner::before {
+      content: "";
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+      border-radius: 18px 18px 0 0;
     }
 
-    .book-btn {
-      display: inline-block;
-      padding: 10px 20px;
-      background: #22c55e;
-      color: #fff;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: opacity 0.15s;
+    /* stagger animation */
+    .flight-card { opacity: 0; animation: cardIn 0.3s ease forwards; }
+    .flight-card:nth-child(1) { animation-delay: 0.05s; }
+    .flight-card:nth-child(2) { animation-delay: 0.10s; }
+    .flight-card:nth-child(3) { animation-delay: 0.15s; }
+    .flight-card:nth-child(4) { animation-delay: 0.20s; }
+    .flight-card:nth-child(5) { animation-delay: 0.25s; }
+    .flight-card:nth-child(6) { animation-delay: 0.30s; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .fc-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .airline-badge {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.7);
+      letter-spacing: 0.05em; flex-shrink: 0; margin-top: 1px;
     }
-    .book-btn:hover { opacity: 0.85; }
-
-    .book-links { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .book-btn-secondary {
-      display: inline-block;
-      padding: 10px 16px;
-      background: transparent;
-      color: #71717a;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: border-color 0.15s, color 0.15s;
+    .fc-carrier-block { flex: 1; }
+    .fc-carrier { font-size: 0.95rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .fc-flightno { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+    .fc-price-block { text-align: right; flex-shrink: 0; }
+    .fc-price { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; line-height: 1; }
+    .winner-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: #fff; font-size: 0.62rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 3px 9px; border-radius: 20px; margin-top: 6px;
+      box-shadow: 0 2px 10px rgba(99,102,241,0.4);
     }
-    .book-btn-secondary:hover { border-color: #52525b; color: #a1a1aa; }
 
-    .layover-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.78rem;
-      padding: 3px 8px;
-      border-radius: 5px;
-      font-weight: 500;
+    /* Route bar */
+    .fc-route {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     }
-    .layover-ok   { background: #1c2e22; color: #4ade80; }
-    .layover-warn { background: #2e2010; color: #fb923c; }
-    .layover-bad  { background: #2e1010; color: #f87171; }
+    .fc-time-block { flex-shrink: 0; min-width: 44px; }
+    .fc-time { font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .fc-time-block.right { text-align: right; }
+    .fc-time-next { font-size: 0.62rem; color: var(--orange); font-weight: 600; vertical-align: super; margin-left: 2px; }
+    .fc-route-mid {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .fc-duration { font-size: 0.72rem; font-weight: 600; color: var(--text2); letter-spacing: 0.02em; }
+    .fc-bar { width: 100%; display: flex; align-items: center; position: relative; }
+    .fc-bar-line {
+      flex: 1; height: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.14), rgba(255,255,255,0.06));
+      border-radius: 2px;
+    }
+    .fc-bar-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); flex-shrink: 0;
+    }
+    .fc-bar-stop {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--orange); flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(249,115,22,0.6);
+    }
+    .fc-bar-plane { font-size: 0.65rem; color: rgba(255,255,255,0.2); flex-shrink: 0; }
 
-    .divider { border: none; border-top: 1px solid #27272a; margin: 20px 0; }
+    /* Tags */
+    .fc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 8px;
+    }
+    .tag-green  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.18); }
+    .tag-orange { background: rgba(249,115,22,0.1); color: var(--orange); border: 1px solid rgba(249,115,22,0.2); }
+    .tag-red    { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.18); }
+    .tag-direct { background: rgba(34,197,94,0.07); color: var(--green); border: 1px solid rgba(34,197,94,0.18); }
 
-    .runnerup-label { font-size: 0.75rem; color: #52525b; font-weight: 500; margin-bottom: 6px; }
-    .runnerup-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .runnerup-name { font-size: 0.875rem; color: #71717a; }
-    .runnerup-price { font-size: 0.875rem; color: #71717a; white-space: nowrap; }
+    /* Reason */
+    .fc-reason {
+      font-size: 0.8rem; color: var(--text2); line-height: 1.6;
+      padding: 10px 13px; background: rgba(0,0,0,0.3);
+      border-radius: 10px; margin-top: 12px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
 
-    .all-flights { margin-top: 24px; }
-    .all-flights summary { font-size: 0.8rem; color: #52525b; cursor: pointer; user-select: none; list-style: none; }
-    .all-flights summary::-webkit-details-marker { display: none; }
-    .all-flights summary::before { content: "▸ "; }
-    details[open] .all-flights summary::before, details.all-flights[open] summary::before { content: "▾ "; }
+    /* Book links */
+    .fc-book { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .btn-book {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: #fff; border-radius: 10px; font-size: 0.82rem; font-weight: 700;
+      text-decoration: none; transition: opacity 0.15s, box-shadow 0.15s;
+      box-shadow: 0 3px 14px rgba(99,102,241,0.3);
+    }
+    .btn-book:hover { opacity: 0.88; box-shadow: 0 4px 18px rgba(99,102,241,0.4); }
+    .btn-book-alt {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px;
+      background: transparent; color: var(--text3);
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 0.82rem; font-weight: 500;
+      text-decoration: none; transition: all 0.15s;
+    }
+    .btn-book-alt:hover { border-color: var(--border2); color: var(--text2); }
 
-    .table-scroll { overflow-x: auto; }
-    .flight-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.8rem; }
-    .flight-table th { text-align: left; color: #52525b; font-weight: 500; padding: 4px 8px 8px; border-bottom: 1px solid #27272a; white-space: nowrap; }
-    .flight-table td { padding: 8px; color: #71717a; border-bottom: 1px solid #1c1c1f; white-space: nowrap; }
-    .flight-table tr.is-winner td { color: #a1a1aa; }
+    /* ── Right column ── */
+    .right-col { display: flex; flex-direction: column; gap: 12px; }
 
-    .badge { display: inline-block; padding: 2px 6px; background: #1c2e22; color: #4ade80; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-left: 6px; }
+    /* Hotel card */
+    .hotel-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 20px;
+      box-shadow: var(--shadow-card);
+      opacity: 0; animation: cardIn 0.3s ease 0.1s forwards;
+    }
+    .hotel-name { font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 4px; line-height: 1.3; }
+    .hotel-meta { font-size: 0.8rem; color: var(--text2); margin-bottom: 10px; line-height: 1.5; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .hotel-stars { color: var(--gold); letter-spacing: 0.05em; font-size: 0.78rem; }
+    .hotel-rating { background: rgba(34,197,94,0.12); color: var(--green); font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+    .hotel-price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 12px; }
+    .hotel-price { font-size: 1.25rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+    .hotel-price-sub { font-size: 0.78rem; color: var(--text3); }
+
+    .hotel-reason {
+      font-size: 0.78rem; color: var(--text2); line-height: 1.6;
+      margin-bottom: 14px; padding: 10px 12px;
+      background: rgba(0,0,0,0.25); border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+    .other-options-label { font-size: 0.65rem; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+    .hotel-option {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .hotel-option:last-child { border-bottom: none; padding-bottom: 0; }
+    .hotel-option-name { font-size: 0.82rem; font-weight: 600; color: var(--text2); margin-bottom: 2px; }
+    .hotel-option-meta { font-size: 0.72rem; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+    .hotel-option-price { font-size: 0.85rem; font-weight: 700; color: var(--text2); white-space: nowrap; }
 
     /* Trip total */
-    .trip-total {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 20px 24px;
-      margin-top: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
+    .trip-total-card {
+      background: linear-gradient(140deg, #0f0f24 0%, #0d1220 100%);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 18px; padding: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      opacity: 0; animation: cardIn 0.3s ease 0.15s forwards;
     }
-    .trip-total-label { font-size: 0.8rem; color: #52525b; }
-    .trip-total-amount { font-size: 1.35rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
-    .trip-total-breakdown { font-size: 0.75rem; color: #52525b; margin-top: 2px; text-align: right; }
+    .total-label { font-size: 0.68rem; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .total-amount { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px; }
+    .total-breakdown { font-size: 0.78rem; color: var(--text3); line-height: 1.7; }
+    .total-per { font-size: 0.82rem; color: var(--accent2); font-weight: 600; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(99,102,241,0.15); }
 
-    /* Loading */
-    .loading-card { background: #18181b; border: 1px solid #27272a; border-radius: 16px; padding: 32px 28px; text-align: center; }
-    .loading-steps { display: flex; flex-direction: column; gap: 14px; text-align: left; max-width: 300px; margin: 0 auto; }
-    .step { display: flex; align-items: center; gap: 12px; font-size: 0.875rem; color: #3f3f46; transition: color 0.3s; }
-    .step.active { color: #a1a1aa; }
-    .step.done   { color: #52525b; }
-    .step-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
-    .spinner-small { width: 14px; height: 14px; border: 2px solid #3f3f46; border-top-color: #71717a; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    /* ── Loading ── */
+    .loading-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 22px; padding: 44px 32px; text-align: center;
+      box-shadow: var(--shadow-card);
+    }
+    .loading-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+      animation: float 2.5s ease-in-out infinite;
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .loading-steps { display: flex; flex-direction: column; gap: 14px; text-align: left; max-width: 260px; margin: 0 auto; }
+    .step { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: var(--text3); transition: color 0.3s; }
+    .step.active { color: var(--text); }
+    .step.done   { color: var(--text3); }
+    .step-icon { width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .spinner-sm {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(99,102,241,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: #27272a; margin: 0 4px; }
-    .step.active .step-dot { background: #52525b; }
-    .step.done   .step-dot { background: #22c55e; }
+    .step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); transition: background 0.3s; }
+    .step.active .step-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .step.done   .step-dot { background: var(--green); }
 
-    .error-msg { background: #1c1010; border: 1px solid #3f1515; border-radius: 10px; padding: 16px; color: #f87171; font-size: 0.875rem; }
+    /* ── Error ── */
+    .error-msg {
+      background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 14px; padding: 16px 20px; color: #fca5a5; font-size: 0.875rem;
+    }
 
     /* ── Mobile ── */
-    @media (max-width: 500px) {
-      body { padding: 28px 12px 60px; }
-      h1 { font-size: 1.25rem; }
-      .card { padding: 20px; }
-
-      .row-three {
-        grid-template-columns: 1fr 1fr;
-      }
-      .row-three .field:first-child {
-        grid-column: span 2;
-      }
-
-      .prefs-row { flex-direction: column; }
-
-      .winner-name { font-size: 1.15rem; }
-
-      .runnerup-row { flex-direction: column; align-items: flex-start; }
-
-      .trip-total { flex-direction: column; align-items: flex-start; gap: 8px; }
-      .trip-total-breakdown { text-align: left; }
-
-      .result-card { padding: 18px; }
+    @media (max-width: 680px) {
+      body { padding: 28px 12px 72px; }
+      .header h1 { font-size: 1.5rem; }
+      .card { padding: 20px; border-radius: 18px; }
+      .results-grid { grid-template-columns: 1fr; }
+      .fc-price { font-size: 1.2rem; }
+      .total-amount { font-size: 1.6rem; }
+      .right-col { flex-direction: column; }
+    }
+    @media (max-width: 400px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .row .field:first-child { grid-column: span 2; }
     }
   </style>
 </head>
 <body>
 
-  <h1>Travel Advisor</h1>
-  <p class="subtitle">One opinionated pick — no endless list.</p>
+  <div class="header">
+    <div class="header-icon">✈</div>
+    <h1>Travel Advisor</h1>
+    <p>One opinionated pick — no endless scrolling.</p>
+  </div>
 
   <div class="card">
-    <div class="field">
+    <div class="field" style="margin-bottom:8px">
       <label>Describe your trip</label>
-      <div style="display:flex;gap:8px">
+      <div class="nl-row">
         <input id="nlInput" type="text" placeholder="e.g. Tokyo 5 nights in July, 2 people from Taipei" style="flex:1">
-        <button id="parseBtn" onclick="parseNL()" style="width:auto;padding:10px 16px;margin:0;font-size:0.85rem;min-height:44px">Fill ↓</button>
+        <button class="btn-parse" id="parseBtn" onclick="parseNL()">Fill ↓</button>
       </div>
     </div>
     <div class="nl-divider">or fill manually</div>
-    <div class="row">
-      <div class="field">
+
+    <div class="route-row">
+      <div class="field" style="margin:0">
         <label>From</label>
-        <input id="from" type="text" placeholder="TPE" maxlength="3" style="text-transform:uppercase">
+        <input id="from" class="iata-input" type="text" placeholder="TPE" maxlength="3">
       </div>
-      <div class="field">
+      <button class="swap-btn" onclick="swapRoutes()" title="Swap">⇄</button>
+      <div class="field" style="margin:0">
         <label>To</label>
-        <input id="to" type="text" placeholder="NRT" maxlength="3" style="text-transform:uppercase">
+        <input id="to" class="iata-input" type="text" placeholder="LHR" maxlength="3">
       </div>
     </div>
-    <div class="row-three">
+
+    <div class="row">
       <div class="field">
         <label>Departure date</label>
         <input id="date" type="date">
@@ -361,21 +466,21 @@
     </div>
 
     <details class="prefs-details" id="prefsDetails">
-      <summary>Preferences</summary>
+      <summary>Preferences &amp; filters</summary>
       <div class="prefs-body">
         <div class="field" style="margin:0">
           <label>Notes</label>
-          <input id="prefNotes" type="text" placeholder="e.g. prefer window seats, EVA Air, avoid red-eyes" oninput="savePrefs()">
+          <input id="prefNotes" type="text" placeholder="e.g. prefer window seat, avoid red-eyes, EVA Air" oninput="savePrefs()">
         </div>
         <div class="prefs-row">
           <label class="toggle-wrap">
             <input type="checkbox" id="prefDirect" onchange="savePrefs()">
-            <span>Direct flights only</span>
+            <span>Direct only</span>
           </label>
-          <div class="field" style="margin:0;flex:1">
+          <div class="field" style="margin:0">
             <label>Hotel tier</label>
-            <select id="prefHotel" onchange="savePrefs()" style="font-size:0.875rem;padding:8px 12px">
-              <option value="">No preference</option>
+            <select id="prefHotel" onchange="savePrefs()" style="font-size:0.875rem;padding:9px 12px">
+              <option value="">Any</option>
               <option value="budget">Budget</option>
               <option value="mid-range">Mid-range</option>
               <option value="premium">Premium</option>
@@ -385,35 +490,35 @@
       </div>
     </details>
 
-    <button id="searchBtn" onclick="search()">Find best flight &amp; hotel</button>
+    <button class="btn-primary" id="searchBtn" onclick="search()">Find best flight &amp; hotel →</button>
   </div>
 
   <div id="historySection">
-    <div class="history-label">Recent searches</div>
+    <div class="history-label">Recent</div>
     <div class="history-chips" id="historyChips"></div>
   </div>
 
   <div id="result"></div>
 
   <script>
-    // ── Init ──
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
+    const d = new Date(); d.setDate(d.getDate() + 30);
     document.getElementById("date").value = d.toISOString().slice(0, 10);
-    loadPrefs();
-    renderHistory();
+    loadPrefs(); renderHistory();
 
-    // ── Preferences ──
+    function swapRoutes() {
+      const f = document.getElementById("from"), t = document.getElementById("to");
+      [f.value, t.value] = [t.value, f.value];
+    }
+
     function loadPrefs() {
       try {
         const p = JSON.parse(localStorage.getItem("ta-prefs") || "{}");
-        if (p.notes)   document.getElementById("prefNotes").value   = p.notes;
-        if (p.direct)  document.getElementById("prefDirect").checked = true;
-        if (p.hotel)   document.getElementById("prefHotel").value   = p.hotel;
-        if (p.open)    document.getElementById("prefsDetails").open  = true;
+        if (p.notes)  document.getElementById("prefNotes").value    = p.notes;
+        if (p.direct) document.getElementById("prefDirect").checked = true;
+        if (p.hotel)  document.getElementById("prefHotel").value    = p.hotel;
+        if (p.open)   document.getElementById("prefsDetails").open  = true;
       } catch {}
     }
-
     function savePrefs() {
       localStorage.setItem("ta-prefs", JSON.stringify({
         notes:  document.getElementById("prefNotes").value,
@@ -422,7 +527,6 @@
         open:   document.getElementById("prefsDetails").open,
       }));
     }
-
     document.getElementById("prefsDetails").addEventListener("toggle", savePrefs);
 
     function getPrefsText() {
@@ -436,32 +540,25 @@
       return parts.join("; ");
     }
 
-    // ── History ──
-    function getHistory() {
-      try { return JSON.parse(localStorage.getItem("ta-history") || "[]"); } catch { return []; }
-    }
-
+    function getHistory() { try { return JSON.parse(localStorage.getItem("ta-history") || "[]"); } catch { return []; } }
     function saveToHistory(entry) {
-      const h = getHistory().filter(e => !(e.from === entry.from && e.to === entry.to && e.date === entry.date));
+      const h = getHistory().filter(e => !(e.from===entry.from && e.to===entry.to && e.date===entry.date));
       h.unshift(entry);
       localStorage.setItem("ta-history", JSON.stringify(h.slice(0, 5)));
       renderHistory();
     }
-
     function renderHistory() {
       const h = getHistory();
       const sec = document.getElementById("historySection");
       const chips = document.getElementById("historyChips");
       if (!h.length) { sec.style.display = "none"; return; }
       sec.style.display = "block";
-      chips.innerHTML = h.map((e, i) => `
-        <button class="history-chip" onclick="restoreSearch(${i})">${escHtml(e.from)} → ${escHtml(e.to)} · ${escHtml(e.label)}</button>
-      `).join("") + `<button class="history-clear" onclick="clearHistory()">Clear</button>`;
+      chips.innerHTML = h.map((e,i) =>
+        `<button class="history-chip" onclick="restoreSearch(${i})">${esc(e.from)} → ${esc(e.to)} · ${esc(e.label)}</button>`
+      ).join("") + `<button class="history-clear" onclick="clearHistory()">Clear</button>`;
     }
-
     function restoreSearch(idx) {
-      const e = getHistory()[idx];
-      if (!e) return;
+      const e = getHistory()[idx]; if (!e) return;
       document.getElementById("from").value   = e.from;
       document.getElementById("to").value     = e.to;
       document.getElementById("date").value   = e.date;
@@ -469,99 +566,64 @@
       document.getElementById("adults").value = e.adults;
       search();
     }
+    function clearHistory() { localStorage.removeItem("ta-history"); renderHistory(); }
 
-    function clearHistory() {
-      localStorage.removeItem("ta-history");
-      renderHistory();
-    }
-
-    // ── NL parse ──
     async function parseNL() {
-      const text = document.getElementById("nlInput").value.trim();
-      if (!text) return;
+      const text = document.getElementById("nlInput").value.trim(); if (!text) return;
       const btn = document.getElementById("parseBtn");
       btn.disabled = true; btn.textContent = "…";
       try {
-        const res = await fetch("/api/parse", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        const r = await fetch("/api/parse", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({text}) });
+        const data = await r.json(); if (!r.ok) throw new Error(data.error);
         if (data.from)   document.getElementById("from").value   = data.from;
         if (data.to)     document.getElementById("to").value     = data.to;
         if (data.date)   document.getElementById("date").value   = data.date;
         if (data.nights) document.getElementById("nights").value = data.nights;
         if (data.adults) document.getElementById("adults").value = data.adults;
-      } catch (err) {
-        showError("Could not parse trip: " + err.message);
-      } finally {
-        btn.disabled = false; btn.textContent = "Fill ↓";
-      }
+      } catch (err) { showError("Could not parse: " + err.message); }
+      finally { btn.disabled = false; btn.textContent = "Fill ↓"; }
     }
 
-    // ── Search ──
     async function search() {
       const from   = document.getElementById("from").value.trim().toUpperCase();
       const to     = document.getElementById("to").value.trim().toUpperCase();
       const date   = document.getElementById("date").value;
       const nights = parseInt(document.getElementById("nights").value, 10);
       const adults = parseInt(document.getElementById("adults").value, 10);
-
-      if (!from || !to || !date) {
-        showError("Please fill in origin, destination, and date.");
-        return;
-      }
-
+      if (!from || !to || !date) { showError("Please fill in origin, destination, and date."); return; }
       const btn = document.getElementById("searchBtn");
       btn.disabled = true; btn.textContent = "Searching…";
       showLoading();
-
       try {
-        const res = await fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to, date, nights, adults, preferences: getPrefsText() }),
+        const r = await fetch("/api/search", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ from, to, date, nights, adults, preferences: getPrefsText() })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Unknown error");
-
-        // Save to history
-        const depart = new Date(date);
-        const ret = new Date(depart);
-        ret.setDate(ret.getDate() + nights);
-        saveToHistory({
-          from, to, date, nights, adults,
-          label: depart.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + "–" +
-                 ret.toLocaleDateString("en-US",   { month: "short", day: "numeric" }),
-        });
-
+        const data = await r.json(); if (!r.ok) throw new Error(data.error || "Unknown error");
+        const depart = new Date(date), ret = new Date(depart); ret.setDate(ret.getDate() + nights);
+        saveToHistory({ from, to, date, nights, adults,
+          label: depart.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + "–" +
+                 ret.toLocaleDateString("en-US",{month:"short",day:"numeric"}) });
         showResult(data);
-      } catch (err) {
-        showError(err.message);
-      } finally {
-        btn.disabled = false; btn.textContent = "Find best flight & hotel";
-      }
+      } catch (err) { showError(err.message); }
+      finally { btn.disabled = false; btn.textContent = "Find best flight & hotel →"; }
     }
 
-    // ── Loading ──
-    let _loadingTimer = null;
-
+    let _lt = null;
     const STEPS = [
-      { label: "Looking up routes and airlines",    delay: 0     },
-      { label: "Generating flight options",         delay: 5000  },
-      { label: "Searching for hotels",              delay: 10000 },
-      { label: "Comparing prices and options",      delay: 16000 },
-      { label: "Picking the best flight and hotel", delay: 22000 },
+      { label: "Checking real prices",         delay: 0     },
+      { label: "Generating flight options",     delay: 5000  },
+      { label: "Searching hotels",              delay: 10000 },
+      { label: "Comparing all options",         delay: 18000 },
+      { label: "Picking the best combination",  delay: 26000 },
     ];
-
     function showLoading() {
-      if (_loadingTimer) clearInterval(_loadingTimer);
+      if (_lt) clearInterval(_lt);
       document.getElementById("result").innerHTML = `
-        <div class="result-card loading-card">
+        <div class="loading-wrap">
+          <div class="loading-icon">✈</div>
           <div class="loading-steps" id="loadingSteps">
-            ${STEPS.map((s, i) => `
+            ${STEPS.map((s,i) => `
               <div class="step" id="step${i}">
                 <span class="step-icon"><span class="step-dot"></span></span>
                 <span>${s.label}</span>
@@ -570,176 +632,191 @@
         </div>`;
       const start = Date.now();
       function tick() {
-        const elapsed = Date.now() - start;
-        let activeSet = false;
-        for (let i = STEPS.length - 1; i >= 0; i--) {
-          const el = document.getElementById("step" + i);
-          if (!el) continue;
-          if (elapsed >= STEPS[i].delay) {
-            if (!activeSet) {
-              el.className = "step active";
-              el.querySelector(".step-icon").innerHTML = '<span class="spinner-small"></span>';
-              activeSet = true;
-            } else {
-              el.className = "step done";
-              el.querySelector(".step-icon").innerHTML = "✓";
-            }
+        const el = Date.now() - start; let set = false;
+        for (let i = STEPS.length-1; i >= 0; i--) {
+          const s = document.getElementById("step"+i); if (!s) continue;
+          if (el >= STEPS[i].delay) {
+            if (!set) { s.className="step active"; s.querySelector(".step-icon").innerHTML='<span class="spinner-sm"></span>'; set=true; }
+            else      { s.className="step done";   s.querySelector(".step-icon").innerHTML='<span style="color:var(--green);font-size:0.8rem;font-weight:700">✓</span>'; }
           }
         }
       }
-      tick();
-      _loadingTimer = setInterval(tick, 500);
+      tick(); _lt = setInterval(tick, 400);
+    }
+    function stopLoading() { if (_lt) { clearInterval(_lt); _lt = null; } }
+    function showError(msg) { stopLoading(); document.getElementById("result").innerHTML = `<div class="error-msg">⚠ ${esc(msg)}</div>`; }
+
+    function airlineCode(flight, carrier) {
+      if (flight && /^[A-Z0-9]{2}/.test(flight)) return flight.slice(0, 2);
+      return carrier ? carrier.slice(0, 2).toUpperCase() : "??";
     }
 
-    function stopLoading() {
-      if (_loadingTimer) { clearInterval(_loadingTimer); _loadingTimer = null; }
+    function routeBar(stops) {
+      if (stops === 0) {
+        return `<div class="fc-bar">
+          <span class="fc-bar-dot"></span>
+          <span class="fc-bar-line"></span>
+          <span class="fc-bar-plane">✈</span>
+          <span class="fc-bar-line"></span>
+          <span class="fc-bar-dot"></span>
+        </div>`;
+      }
+      let inner = `<span class="fc-bar-dot"></span>`;
+      for (let i = 0; i < stops; i++) {
+        inner += `<span class="fc-bar-line"></span><span class="fc-bar-stop"></span>`;
+      }
+      inner += `<span class="fc-bar-line"></span><span class="fc-bar-dot"></span>`;
+      return `<div class="fc-bar">${inner}</div>`;
     }
 
-    // ── Results ──
-    function showError(msg) {
-      stopLoading();
-      document.getElementById("result").innerHTML = `<div class="error-msg">${escHtml(msg)}</div>`;
+    function layoverTags(flight) {
+      if (!flight.layovers?.length) return `<span class="tag tag-direct">✓ Direct</span>`;
+      return flight.layovers.map(l => {
+        const m = l.durationMinutes ?? 999;
+        const cls = m < 60 ? "tag-red" : m < 120 ? "tag-orange" : "tag-green";
+        const warn = m < 120 ? " ⚠" : "";
+        return `<span class="tag ${cls}">via ${esc(l.city || l.airport)} · ${esc(l.duration)}${warn}</span>`;
+      }).join("");
+    }
+
+    // detect +1 day arrival (very rough: if arrives HH:MM is numerically < departs)
+    function nextDayMark(departs, arrives) {
+      if (!departs || !arrives) return "";
+      const [dh] = departs.split(":").map(Number);
+      const [ah] = arrives.split(":").map(Number);
+      return ah < dh ? `<sup class="fc-time-next">+1</sup>` : "";
     }
 
     function showResult({ flights, winner, runnerup, reason, datesLabel, hotel, nights: n, adults: a }) {
       stopLoading();
       const nightCount = n || parseInt(document.getElementById("nights").value, 10);
       const adultCount = a || parseInt(document.getElementById("adults").value, 10);
-      const winnerIdx  = flights.findIndex(f => f.flight === winner.flight);
+      const fromVal    = document.getElementById("from").value.toUpperCase();
+      const toVal      = document.getElementById("to").value.toUpperCase();
+      const dateVal    = document.getElementById("date").value;
 
-      const flightRows = flights.map((f, i) => {
-        const layoverCell = f.layovers?.length
-          ? f.layovers.map(l => {
-              const mins = l.durationMinutes ?? 999;
-              const cls  = mins < 60 ? "layover-bad" : mins < 120 ? "layover-warn" : "layover-ok";
-              return `<span class="layover-tag ${cls}">${escHtml(l.airport)} ${escHtml(l.duration)}</span>`;
-            }).join(" ")
-          : "direct";
+      const winnerIdx = flights.findIndex(f => f.flight===winner?.flight && f.carrier===winner?.carrier);
+      const sorted = [...flights];
+      if (winnerIdx >= 0) { const [w] = sorted.splice(winnerIdx, 1); sorted.unshift(w); }
+
+      const flightCardsHtml = sorted.map(f => {
+        const isWinner = (f.flight===winner?.flight && f.carrier===winner?.carrier);
+        const code = airlineCode(f.flight, f.carrier);
+        const bookLinks = isWinner ? `
+          <div class="fc-book">
+            <a class="btn-book" href="${esc(f.aviasales_url || f.booking_url)}" target="_blank" rel="noopener">Book on Aviasales →</a>
+            <a class="btn-book-alt" href="https://www.google.com/flights?q=flights+from+${encodeURIComponent(fromVal)}+to+${encodeURIComponent(toVal)}+on+${encodeURIComponent(dateVal)}" target="_blank" rel="noopener">Seat map ↗</a>
+          </div>` : "";
+        const reasonHtml = isWinner && reason ? `<div class="fc-reason">${esc(reason)}</div>` : "";
+
         return `
-        <tr class="${i === winnerIdx ? "is-winner" : ""}">
-          <td>${escHtml(f.carrier)} ${escHtml(f.flight)}${i === winnerIdx ? '<span class="badge">pick</span>' : ""}</td>
-          <td>${f.departs ? escHtml(f.departs) + "–" + escHtml(f.arrives) : "–"}</td>
-          <td>${escHtml(f.duration)}</td>
-          <td>${layoverCell}</td>
-          <td>$${f.price_usd}</td>
-        </tr>`;
+        <div class="flight-card ${isWinner ? "winner" : ""}">
+          <div class="fc-top">
+            <div class="airline-badge">${esc(code)}</div>
+            <div class="fc-carrier-block">
+              <div class="fc-carrier">${esc(f.carrier)}</div>
+              <div class="fc-flightno">${esc(f.flight || "")}</div>
+            </div>
+            <div class="fc-price-block">
+              <div class="fc-price">$${f.price_usd}</div>
+              ${isWinner ? `<div style="text-align:right"><span class="winner-badge">★ Best pick</span></div>` : ""}
+            </div>
+          </div>
+          <div class="fc-route">
+            <div class="fc-time-block">
+              <div class="fc-time">${esc(f.departs || "—")}</div>
+            </div>
+            <div class="fc-route-mid">
+              <div class="fc-duration">${esc(f.duration)}</div>
+              ${routeBar(f.stops ?? 0)}
+            </div>
+            <div class="fc-time-block right">
+              <div class="fc-time">${esc(f.arrives || "—")}${nextDayMark(f.departs, f.arrives)}</div>
+            </div>
+          </div>
+          <div class="fc-tags">${layoverTags(f)}</div>
+          ${reasonHtml}
+          ${bookLinks}
+        </div>`;
       }).join("");
 
-      const hotelWinnerIdx = hotel ? hotel.hotels.findIndex(h => h.name === hotel.winner.name) : -1;
-      const hotelRows = hotel ? hotel.hotels.map((h, i) => `
-        <tr class="${i === hotelWinnerIdx ? "is-winner" : ""}">
-          <td>${escHtml(h.name)}${i === hotelWinnerIdx ? '<span class="badge">pick</span>' : ""}</td>
-          <td>${escHtml(h.area)}</td>
-          <td>${"★".repeat(h.stars || 0)}</td>
-          <td>${h.rating}/10</td>
-          <td>$${h.price_per_night_usd}/night</td>
-        </tr>`).join("") : "";
+      // Hotel
+      const otherHotels = hotel ? hotel.hotels.filter(h => h.name !== hotel.winner.name) : [];
+      const otherHotelRows = otherHotels.map(h => `
+        <div class="hotel-option">
+          <div>
+            <div class="hotel-option-name">${esc(h.name)}</div>
+            <div class="hotel-option-meta">
+              <span class="hotel-stars">${"★".repeat(h.stars||0)}</span>
+              <span class="hotel-rating">${h.rating}</span>
+              <span>${esc(h.area)}</span>
+            </div>
+          </div>
+          <div class="hotel-option-price">$${h.price_per_night_usd}<span style="font-size:0.7rem;font-weight:400;color:var(--text3)">/nt</span></div>
+        </div>`).join("");
 
       const hotelHtml = hotel ? `
-        <div class="result-card" style="margin-top:16px">
-          <div class="result-label">Recommended hotel · ${escHtml(hotel.city)} · ${nightCount} nights</div>
-          <div class="winner-name">${escHtml(hotel.winner.name)}</div>
-          <div class="winner-details">
-            ${escHtml(hotel.winner.area)} &nbsp;·&nbsp;
-            ${"★".repeat(hotel.winner.stars || 0)} &nbsp;·&nbsp;
-            ${hotel.winner.rating}/10 &nbsp;·&nbsp;
-            <strong>$${hotel.winner.price_per_night_usd}/night</strong>
-            &nbsp;·&nbsp; $${hotel.winner.price_per_night_usd * nightCount} total
+        <div class="hotel-card">
+          <div class="section-hdr">Hotel · ${esc(hotel.city)} <span class="section-hdr-badge">${nightCount} nights</span></div>
+          <div class="hotel-name">${esc(hotel.winner.name)}</div>
+          <div class="hotel-meta">
+            <span class="hotel-stars">${"★".repeat(hotel.winner.stars||0)}</span>
+            <span class="hotel-rating">${hotel.winner.rating}</span>
+            <span>${esc(hotel.winner.area)}</span>
           </div>
-          <div class="reason">${escHtml(hotel.reason)}</div>
-          <a class="book-btn" href="${escHtml(hotel.winner.booking_url)}" target="_blank" rel="noopener">Book now →</a>
-          <hr class="divider">
-          <div class="runnerup-label">Runner-up</div>
-          <div class="runnerup-row">
-            <span class="runnerup-name">${escHtml(hotel.runnerup.name)} · ${escHtml(hotel.runnerup.area)} · ${"★".repeat(hotel.runnerup.stars || 0)}</span>
-            <span class="runnerup-price">$${hotel.runnerup.price_per_night_usd}/night</span>
+          <div class="hotel-price-row">
+            <div class="hotel-price">$${hotel.winner.price_per_night_usd}</div>
+            <div class="hotel-price-sub">/night · $${hotel.winner.price_per_night_usd * nightCount} total</div>
           </div>
-          <details class="all-flights">
-            <summary>All options (${hotel.hotels.length})</summary>
-            <div class="table-scroll">
-              <table class="flight-table">
-                <thead><tr><th>Hotel</th><th>Area</th><th>Stars</th><th>Rating</th><th>Price</th></tr></thead>
-                <tbody>${hotelRows}</tbody>
-              </table>
-            </div>
-          </details>
+          <div class="hotel-reason">${esc(hotel.reason)}</div>
+          <a class="btn-book" href="${esc(hotel.winner.booking_url)}" target="_blank" rel="noopener" style="display:inline-flex;text-decoration:none">Book →</a>
+          ${otherHotelRows.length ? `<div class="divider"></div><div class="other-options-label">Other options</div>${otherHotelRows}` : ""}
         </div>` : "";
 
-      const flightTotal = winner.price_usd * adultCount;
+      const flightTotal = (winner?.price_usd ?? 0) * adultCount;
       const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
       const tripTotal   = flightTotal + hotelTotal;
 
       const totalHtml = `
-        <div class="trip-total">
-          <div class="trip-total-label">Estimated trip total</div>
-          <div>
-            <div class="trip-total-amount">$${tripTotal.toLocaleString()}</div>
-            <div class="trip-total-breakdown">
-              ${adultCount > 1 ? `${adultCount}× ` : ""}$${winner.price_usd} flight${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}
-              ${adultCount > 1 ? ` · ~$${Math.round(tripTotal / adultCount).toLocaleString()}/person` : ""}
-            </div>
+        <div class="trip-total-card">
+          <div class="total-label">Estimated total</div>
+          <div class="total-amount">$${tripTotal.toLocaleString()}</div>
+          <div class="total-breakdown">
+            ${adultCount > 1 ? adultCount + "× " : ""}$${winner?.price_usd ?? 0} flight${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}
           </div>
+          ${adultCount > 1 ? `<div class="total-per">≈ $${Math.round(tripTotal/adultCount).toLocaleString()} per person</div>` : ""}
         </div>`;
 
       document.getElementById("result").innerHTML = `
-        <div class="result-card">
-          <div class="result-label">Recommended flight · ${escHtml(datesLabel)}</div>
-          <div class="winner-name">${escHtml(winner.carrier)} ${escHtml(winner.flight)}</div>
-          <div class="winner-details">
-            ${escHtml(winner.departs)}–${escHtml(winner.arrives)} &nbsp;·&nbsp;
-            ${escHtml(winner.duration)} &nbsp;·&nbsp;
-            ${winner.stops === 0 ? "direct" : winner.stops + " stop"} &nbsp;·&nbsp;
-            <strong>$${winner.price_usd}</strong>
-          </div>
-          <div class="reason">${escHtml(reason)}</div>
-          ${layoverHtml(winner)}
-          <div class="book-links" style="margin-top:4px">
-            <a class="book-btn" href="${escHtml(winner.aviasales_url || winner.booking_url)}" target="_blank" rel="noopener">Book on Aviasales →</a>
-            <a class="book-btn-secondary" href="https://www.google.com/flights?q=flights+from+${encodeURIComponent(document.getElementById('from').value)}+to+${encodeURIComponent(document.getElementById('to').value)}+on+${encodeURIComponent(document.getElementById('date').value)}" target="_blank" rel="noopener">Seat map (Google Flights)</a>
-          </div>
-          <hr class="divider">
-          <div class="runnerup-label">Runner-up</div>
-          <div class="runnerup-row">
-            <span class="runnerup-name">${escHtml(runnerup.carrier)} ${escHtml(runnerup.flight)}${runnerup.departs ? ` · ${escHtml(runnerup.departs)}–${escHtml(runnerup.arrives)}` : ""} · ${escHtml(runnerup.duration)}</span>
-            <span class="runnerup-price">$${runnerup.price_usd}</span>
-          </div>
-          <details class="all-flights">
-            <summary>All options (${flights.length})</summary>
-            <div class="table-scroll">
-              <table class="flight-table">
-                <thead><tr><th>Flight</th><th>Times</th><th>Duration</th><th>Via / Layover</th><th>Price</th></tr></thead>
-                <tbody>${flightRows}</tbody>
-              </table>
+        <div class="results-grid">
+          <div>
+            <div class="section-hdr">
+              Flights · ${esc(datesLabel)}
+              <span class="section-hdr-badge">${flights.length} options</span>
             </div>
-          </details>
-        </div>
-        ${hotelHtml}
-        ${totalHtml}`;
+            ${flightCardsHtml}
+          </div>
+          <div class="right-col">
+            ${hotelHtml}
+            ${totalHtml}
+          </div>
+        </div>`;
     }
 
-    function layoverHtml(flight) {
-      if (!flight.layovers?.length) return "";
-      return flight.layovers.map(l => {
-        const mins = l.durationMinutes ?? 999;
-        const cls  = mins < 60 ? "layover-bad" : mins < 120 ? "layover-warn" : "layover-ok";
-        const warn = mins < 120 ? " ⚠ under 2h" : "";
-        return `<span class="layover-tag ${cls}" style="margin-bottom:12px;display:inline-flex">
-          via ${escHtml(l.airport)}${l.city ? " (" + escHtml(l.city) + ")" : ""} · ${escHtml(l.duration)}${warn}
-        </span>`;
-      }).join(" ");
+    function esc(s) {
+      return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
 
-    function escHtml(s) {
-      return String(s ?? "")
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    document.getElementById("nlInput").addEventListener("keydown", e => {
-      if (e.key === "Enter") parseNL();
-    });
+    document.getElementById("nlInput").addEventListener("keydown", e => { if (e.key==="Enter") parseNL(); });
     document.addEventListener("keydown", e => {
-      if (e.key === "Enter" && document.activeElement.id !== "nlInput") search();
+      if (e.key==="Enter" && !["nlInput","prefNotes"].includes(document.activeElement?.id)) search();
+    });
+    ["from","to"].forEach(id => {
+      document.getElementById(id).addEventListener("input", function() {
+        const s = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(s, s);
+      });
     });
   </script>
 </body>

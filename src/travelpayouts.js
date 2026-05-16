@@ -1,17 +1,8 @@
 // Travelpayouts Flights Data API — real prices from last 48h
 // Sign up (free): https://travelpayouts.com → Data API → Get token
-// Docs: https://support.travelpayouts.com/hc/en-us/articles/203956143
+// Docs: https://travelpayouts.github.io/slate/
 
 const BASE = "https://api.travelpayouts.com";
-
-const AIRLINE_NAMES = {
-  BR: "EVA Air", CI: "China Airlines", JX: "Starlux Airlines",
-  NH: "ANA", JL: "Japan Airlines", MM: "Peach Aviation",
-  IT: "Tigerair Taiwan", OZ: "Asiana Airlines", KE: "Korean Air",
-  SQ: "Singapore Airlines", CX: "Cathay Pacific", MH: "Malaysia Airlines",
-  TG: "Thai Airways", VN: "Vietnam Airlines", GA: "Garuda Indonesia",
-  MU: "China Eastern", CA: "Air China",
-};
 
 function fmtDuration(minutes) {
   if (!minutes) return null;
@@ -21,51 +12,53 @@ function fmtDuration(minutes) {
 }
 
 /**
- * Fetch cheapest real prices for a route on a given date.
- * Returns standard flight objects — departs/arrives are null (this API
- * only carries price + stops + duration, not timetable).
+ * Fetch real cached prices for a route (last 48h user searches).
+ * Returns lightweight price anchors — carrier/times filled in later by AI.
+ * Falls back to no-filter query if date-specific results are empty.
  */
 export async function getFlightPrices({ from, to, date, token }) {
   if (!token) throw new Error("TRAVELPAYOUTS_TOKEN not set");
 
-  const params = new URLSearchParams({
-    origin: from,
-    destination: to,
-    period_type: "day",
-    beginning_of_period: date,
-    one_way: "true",
-    currency: "usd",
-    limit: "10",
-    show_to_affiliates: "true",
-  });
+  const headers = { "X-Access-Token": token };
 
-  const res = await fetch(`${BASE}/v2/prices/latest?${params}`, {
-    headers: { "X-Access-Token": token },
-  });
+  // Try date-specific first (period_type=month broadens to the whole month)
+  const [y, m] = date.split("-");
+  const monthStart = `${y}-${m}-01`;
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Travelpayouts ${res.status}: ${body}`);
+  for (const params of [
+    // Narrow: specific month
+    new URLSearchParams({ origin: from, destination: to, period_type: "month",
+      beginning_of_period: monthStart, one_way: "true", currency: "usd",
+      limit: "10", show_to_affiliates: "true", sorting: "price" }),
+    // Broad: any cached price for this route
+    new URLSearchParams({ origin: from, destination: to, period_type: "year",
+      one_way: "true", currency: "usd", limit: "10",
+      show_to_affiliates: "true", sorting: "price" }),
+  ]) {
+    const res = await fetch(`${BASE}/v2/prices/latest?${params}`, { headers });
+    if (!res.ok) continue;
+    const json = await res.json();
+
+    // API returns array directly (not nested by destination)
+    const rows = Array.isArray(json.data) ? json.data : Object.values(json.data ?? {});
+    if (!rows.length) continue;
+
+    return rows.map((r) => ({
+      carrier:   r.airline ? (r.airline) : null,   // usually absent
+      flight:    r.flight_number ? `${r.airline ?? ""}${r.flight_number}` : null,
+      departs:   null,
+      arrives:   null,
+      duration:  fmtDuration(r.duration ?? r.duration_to),
+      stops:     r.number_of_changes ?? r.transfers ?? 0,
+      price_usd: r.value ?? r.price,
+      gate:      r.gate ?? null,   // booking OTA, not carrier
+      depart_date: r.depart_date ?? date,
+      layovers:  [],
+      booking_url: `https://www.aviasales.com`,
+    }));
   }
 
-  const json = await res.json();
-  const rows = json.data?.[to];
-  if (!rows?.length) return [];
-
-  const [y, m, d] = date.split("-");
-
-  return rows.map((r) => ({
-    carrier:     AIRLINE_NAMES[r.airline] ?? r.airline,
-    flight:      `${r.airline}${r.flight_number ?? ""}`,
-    departs:     null,
-    arrives:     null,
-    duration:    fmtDuration(r.duration_to ?? r.duration) ?? "?",
-    stops:       r.transfers ?? 0,
-    price_usd:   r.price,
-    layovers:    [],
-    // Aviasales booking link with real inventory
-    booking_url: `https://www.aviasales.com${r.link ?? `/search/${from}${m}${d}${to}1`}`,
-  }));
+  return [];
 }
 
 /**
