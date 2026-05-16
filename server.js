@@ -89,7 +89,11 @@ async function getHotels({ to, date, nights, adults }) {
   checkOut.setDate(checkOut.getDate() + Number(nights));
   const checkOutStr = checkOut.toISOString().slice(0, 10);
 
-  const prompt = `You are a hotel expert. Generate 3 realistic hotel options near ${to} airport, check-in ${date}, check-out ${checkOutStr}, for ${adults} adult${adults > 1 ? "s" : ""}.
+  const stayType = Number(nights) <= 2
+    ? `near the airport (convenience matters for a short ${nights}-night stay)`
+    : `in the city center or a well-connected neighborhood (NOT airport hotels — the traveler wants to experience the city for ${nights} nights)`;
+
+  const prompt = `You are a hotel expert. Generate 3 realistic hotel options ${stayType} for destination ${to}, check-in ${date}, check-out ${checkOutStr}, for ${adults} adult${adults > 1 ? "s" : ""}.
 
 Use real hotels that exist in this city. Use realistic 2026 USD prices per night. Include: a budget option, a solid mid-range pick, and a premium hotel.
 
