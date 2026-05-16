@@ -6,13 +6,17 @@ import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { execSync } from "child_process";
 import { existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { searchFlights } from "./src/tequila.js";
 import { searchFlightsAmadeus } from "./src/amadeus.js";
 import { getFlightPrices, aviasalesUrl } from "./src/travelpayouts.js";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const app = express();
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(join(__dirname, "public")));
 
 // Call Claude via SDK (Render / ANTHROPIC_API_KEY) or CLI (local dev)
 async function askClaude(prompt) {
