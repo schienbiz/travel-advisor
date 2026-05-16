@@ -18,19 +18,8 @@
       padding: 48px 16px 80px;
     }
 
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-
-    .subtitle {
-      font-size: 0.875rem;
-      color: #888;
-      margin-bottom: 40px;
-    }
+    h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; color: #fff; }
+    .subtitle { font-size: 0.875rem; color: #888; margin-bottom: 32px; }
 
     .card {
       background: #18181b;
@@ -41,12 +30,7 @@
       max-width: 520px;
     }
 
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 
     label {
       font-size: 0.75rem;
@@ -56,7 +40,7 @@
       letter-spacing: 0.06em;
     }
 
-    input {
+    input, select {
       background: #09090b;
       border: 1px solid #27272a;
       border-radius: 10px;
@@ -66,27 +50,21 @@
       transition: border-color 0.15s;
       outline: none;
       width: 100%;
+      min-height: 44px;
     }
 
-    input:focus { border-color: #52525b; }
+    input:focus, select:focus { border-color: #52525b; }
     input::placeholder { color: #3f3f46; }
+    select option { background: #18181b; }
 
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    .row-three {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 12px;
-    }
+    .row-three { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
 
     button {
       width: 100%;
       margin-top: 8px;
-      padding: 12px;
+      padding: 14px;
       background: #fff;
       color: #09090b;
       border: none;
@@ -95,10 +73,107 @@
       font-weight: 600;
       cursor: pointer;
       transition: opacity 0.15s;
+      min-height: 48px;
     }
 
     button:hover { opacity: 0.88; }
     button:disabled { opacity: 0.4; cursor: default; }
+
+    /* NL divider */
+    .nl-divider {
+      text-align: center;
+      font-size: 0.72rem;
+      color: #3f3f46;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 4px 0 16px;
+      position: relative;
+    }
+    .nl-divider::before, .nl-divider::after {
+      content: ""; position: absolute; top: 50%;
+      width: 38%; height: 1px; background: #27272a;
+    }
+    .nl-divider::before { left: 0; }
+    .nl-divider::after  { right: 0; }
+
+    /* Preferences */
+    .prefs-details { margin-top: 20px; border-top: 1px solid #27272a; padding-top: 16px; }
+    .prefs-details > summary {
+      font-size: 0.8rem;
+      color: #52525b;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .prefs-details > summary::-webkit-details-marker { display: none; }
+    .prefs-details > summary::after { content: "▸"; font-size: 0.65rem; }
+    .prefs-details[open] > summary::after { content: "▾"; }
+    .prefs-body { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .prefs-row { display: flex; gap: 12px; align-items: flex-end; }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #a1a1aa;
+      white-space: nowrap;
+      padding: 10px 0;
+    }
+    .toggle-wrap input[type=checkbox] { width: 16px; height: 16px; min-height: 0; accent-color: #22c55e; cursor: pointer; }
+
+    /* History */
+    #historySection {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 12px;
+      display: none;
+    }
+    .history-label {
+      font-size: 0.7rem;
+      color: #3f3f46;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .history-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .history-chip {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 20px;
+      color: #71717a;
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      min-height: 0;
+      width: auto;
+      margin: 0;
+      font-weight: 400;
+    }
+    .history-chip:hover { border-color: #52525b; color: #a1a1aa; opacity: 1; }
+    .history-clear {
+      background: none;
+      border: none;
+      color: #3f3f46;
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 4px;
+      min-height: 0;
+      width: auto;
+      margin: 0;
+      font-weight: 400;
+    }
+    .history-clear:hover { color: #71717a; opacity: 1; }
 
     /* Result */
     #result { width: 100%; max-width: 520px; margin-top: 24px; }
@@ -113,28 +188,9 @@
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-    .result-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: #52525b;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 12px;
-    }
-
-    .winner-name {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
-    }
-
-    .winner-details {
-      font-size: 0.875rem;
-      color: #a1a1aa;
-      margin-bottom: 16px;
-    }
+    .result-label { font-size: 0.7rem; font-weight: 600; color: #52525b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .winner-name { font-size: 1.35rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .winner-details { font-size: 0.875rem; color: #a1a1aa; margin-bottom: 16px; }
 
     .reason {
       font-size: 0.875rem;
@@ -157,171 +213,28 @@
       text-decoration: none;
       transition: opacity 0.15s;
     }
-
     .book-btn:hover { opacity: 0.85; }
 
-    .divider {
-      border: none;
-      border-top: 1px solid #27272a;
-      margin: 20px 0;
-    }
+    .divider { border: none; border-top: 1px solid #27272a; margin: 20px 0; }
 
-    .runnerup-label {
-      font-size: 0.75rem;
-      color: #52525b;
-      font-weight: 500;
-      margin-bottom: 6px;
-    }
+    .runnerup-label { font-size: 0.75rem; color: #52525b; font-weight: 500; margin-bottom: 6px; }
+    .runnerup-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .runnerup-name { font-size: 0.875rem; color: #71717a; }
+    .runnerup-price { font-size: 0.875rem; color: #71717a; white-space: nowrap; }
 
-    .runnerup-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .runnerup-name {
-      font-size: 0.9rem;
-      color: #71717a;
-    }
-
-    .runnerup-price {
-      font-size: 0.9rem;
-      color: #71717a;
-    }
-
-    .all-flights {
-      margin-top: 24px;
-    }
-
-    .all-flights summary {
-      font-size: 0.8rem;
-      color: #52525b;
-      cursor: pointer;
-      user-select: none;
-      list-style: none;
-    }
-
+    .all-flights { margin-top: 24px; }
+    .all-flights summary { font-size: 0.8rem; color: #52525b; cursor: pointer; user-select: none; list-style: none; }
     .all-flights summary::-webkit-details-marker { display: none; }
     .all-flights summary::before { content: "▸ "; }
-    details[open] summary::before { content: "▾ "; }
+    details[open] .all-flights summary::before, details.all-flights[open] summary::before { content: "▾ "; }
 
-    .flight-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-      font-size: 0.8rem;
-    }
-
-    .flight-table th {
-      text-align: left;
-      color: #52525b;
-      font-weight: 500;
-      padding: 4px 8px 8px;
-      border-bottom: 1px solid #27272a;
-    }
-
-    .flight-table td {
-      padding: 8px 8px;
-      color: #71717a;
-      border-bottom: 1px solid #1c1c1f;
-    }
-
+    .table-scroll { overflow-x: auto; }
+    .flight-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.8rem; }
+    .flight-table th { text-align: left; color: #52525b; font-weight: 500; padding: 4px 8px 8px; border-bottom: 1px solid #27272a; white-space: nowrap; }
+    .flight-table td { padding: 8px; color: #71717a; border-bottom: 1px solid #1c1c1f; white-space: nowrap; }
     .flight-table tr.is-winner td { color: #a1a1aa; }
 
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      background: #1c2e22;
-      color: #4ade80;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      margin-left: 6px;
-    }
-
-    /* Loading */
-    .loading-card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 32px 28px;
-      text-align: center;
-    }
-
-    .loading-steps {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      text-align: left;
-      max-width: 300px;
-      margin: 0 auto;
-    }
-
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 0.875rem;
-      color: #3f3f46;
-      transition: color 0.3s;
-    }
-
-    .step.active { color: #a1a1aa; }
-    .step.done   { color: #52525b; }
-
-    .step-icon {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-    }
-
-    .spinner-small {
-      width: 14px;
-      height: 14px;
-      border: 2px solid #3f3f46;
-      border-top-color: #71717a;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .step-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #27272a;
-      margin: 0 4px;
-    }
-
-    .step.active .step-dot { background: #52525b; }
-    .step.done   .step-dot { background: #22c55e; }
-
-    .nl-divider {
-      text-align: center;
-      font-size: 0.72rem;
-      color: #3f3f46;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin: 4px 0 16px;
-      position: relative;
-    }
-
-    .nl-divider::before, .nl-divider::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      width: 38%;
-      height: 1px;
-      background: #27272a;
-    }
-
-    .nl-divider::before { left: 0; }
-    .nl-divider::after  { right: 0; }
+    .badge { display: inline-block; padding: 2px 6px; background: #1c2e22; color: #4ade80; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-left: 6px; }
 
     /* Trip total */
     .trip-total {
@@ -333,59 +246,75 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 16px;
     }
+    .trip-total-label { font-size: 0.8rem; color: #52525b; }
+    .trip-total-amount { font-size: 1.35rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+    .trip-total-breakdown { font-size: 0.75rem; color: #52525b; margin-top: 2px; text-align: right; }
 
-    .trip-total-label {
-      font-size: 0.8rem;
-      color: #52525b;
-    }
+    /* Loading */
+    .loading-card { background: #18181b; border: 1px solid #27272a; border-radius: 16px; padding: 32px 28px; text-align: center; }
+    .loading-steps { display: flex; flex-direction: column; gap: 14px; text-align: left; max-width: 300px; margin: 0 auto; }
+    .step { display: flex; align-items: center; gap: 12px; font-size: 0.875rem; color: #3f3f46; transition: color 0.3s; }
+    .step.active { color: #a1a1aa; }
+    .step.done   { color: #52525b; }
+    .step-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
+    .spinner-small { width: 14px; height: 14px; border: 2px solid #3f3f46; border-top-color: #71717a; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: #27272a; margin: 0 4px; }
+    .step.active .step-dot { background: #52525b; }
+    .step.done   .step-dot { background: #22c55e; }
 
-    .trip-total-amount {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.02em;
-    }
+    .error-msg { background: #1c1010; border: 1px solid #3f1515; border-radius: 10px; padding: 16px; color: #f87171; font-size: 0.875rem; }
 
-    .trip-total-breakdown {
-      font-size: 0.75rem;
-      color: #52525b;
-      margin-top: 2px;
-      text-align: right;
-    }
+    /* ── Mobile ── */
+    @media (max-width: 500px) {
+      body { padding: 28px 12px 60px; }
+      h1 { font-size: 1.25rem; }
+      .card { padding: 20px; }
 
-    .error-msg {
-      background: #1c1010;
-      border: 1px solid #3f1515;
-      border-radius: 10px;
-      padding: 16px;
-      color: #f87171;
-      font-size: 0.875rem;
+      .row-three {
+        grid-template-columns: 1fr 1fr;
+      }
+      .row-three .field:first-child {
+        grid-column: span 2;
+      }
+
+      .prefs-row { flex-direction: column; }
+
+      .winner-name { font-size: 1.15rem; }
+
+      .runnerup-row { flex-direction: column; align-items: flex-start; }
+
+      .trip-total { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .trip-total-breakdown { text-align: left; }
+
+      .result-card { padding: 18px; }
     }
   </style>
 </head>
 <body>
 
   <h1>Travel Advisor</h1>
-  <p class="subtitle">Get a single, opinionated recommendation — no endless list.</p>
+  <p class="subtitle">One opinionated pick — no endless list.</p>
 
   <div class="card">
     <div class="field">
       <label>Describe your trip</label>
       <div style="display:flex;gap:8px">
-        <input id="nlInput" type="text" placeholder="e.g. Tokyo for 5 nights in July, 2 people from Taipei" style="flex:1">
-        <button id="parseBtn" onclick="parseNL()" style="width:auto;padding:10px 16px;margin:0;font-size:0.85rem">Fill ↓</button>
+        <input id="nlInput" type="text" placeholder="e.g. Tokyo 5 nights in July, 2 people from Taipei" style="flex:1">
+        <button id="parseBtn" onclick="parseNL()" style="width:auto;padding:10px 16px;margin:0;font-size:0.85rem;min-height:44px">Fill ↓</button>
       </div>
     </div>
     <div class="nl-divider">or fill manually</div>
     <div class="row">
       <div class="field">
         <label>From</label>
-        <input id="from" type="text" placeholder="TPE" maxlength="3">
+        <input id="from" type="text" placeholder="TPE" maxlength="3" style="text-transform:uppercase">
       </div>
       <div class="field">
         <label>To</label>
-        <input id="to" type="text" placeholder="NRT" maxlength="3">
+        <input id="to" type="text" placeholder="NRT" maxlength="3" style="text-transform:uppercase">
       </div>
     </div>
     <div class="row-three">
@@ -402,47 +331,149 @@
         <input id="adults" type="number" value="1" min="1" max="9">
       </div>
     </div>
+
+    <details class="prefs-details" id="prefsDetails">
+      <summary>Preferences</summary>
+      <div class="prefs-body">
+        <div class="field" style="margin:0">
+          <label>Notes</label>
+          <input id="prefNotes" type="text" placeholder="e.g. prefer window seats, EVA Air, avoid red-eyes" oninput="savePrefs()">
+        </div>
+        <div class="prefs-row">
+          <label class="toggle-wrap">
+            <input type="checkbox" id="prefDirect" onchange="savePrefs()">
+            <span>Direct flights only</span>
+          </label>
+          <div class="field" style="margin:0;flex:1">
+            <label>Hotel tier</label>
+            <select id="prefHotel" onchange="savePrefs()" style="font-size:0.875rem;padding:8px 12px">
+              <option value="">No preference</option>
+              <option value="budget">Budget</option>
+              <option value="mid-range">Mid-range</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <button id="searchBtn" onclick="search()">Find best flight &amp; hotel</button>
+  </div>
+
+  <div id="historySection">
+    <div class="history-label">Recent searches</div>
+    <div class="history-chips" id="historyChips"></div>
   </div>
 
   <div id="result"></div>
 
   <script>
-    // Set default date to 30 days from now
+    // ── Init ──
     const d = new Date();
     d.setDate(d.getDate() + 30);
     document.getElementById("date").value = d.toISOString().slice(0, 10);
+    loadPrefs();
+    renderHistory();
 
+    // ── Preferences ──
+    function loadPrefs() {
+      try {
+        const p = JSON.parse(localStorage.getItem("ta-prefs") || "{}");
+        if (p.notes)   document.getElementById("prefNotes").value   = p.notes;
+        if (p.direct)  document.getElementById("prefDirect").checked = true;
+        if (p.hotel)   document.getElementById("prefHotel").value   = p.hotel;
+        if (p.open)    document.getElementById("prefsDetails").open  = true;
+      } catch {}
+    }
+
+    function savePrefs() {
+      localStorage.setItem("ta-prefs", JSON.stringify({
+        notes:  document.getElementById("prefNotes").value,
+        direct: document.getElementById("prefDirect").checked,
+        hotel:  document.getElementById("prefHotel").value,
+        open:   document.getElementById("prefsDetails").open,
+      }));
+    }
+
+    document.getElementById("prefsDetails").addEventListener("toggle", savePrefs);
+
+    function getPrefsText() {
+      const parts = [];
+      const notes  = document.getElementById("prefNotes").value.trim();
+      const direct = document.getElementById("prefDirect").checked;
+      const hotel  = document.getElementById("prefHotel").value;
+      if (notes)  parts.push(notes);
+      if (direct) parts.push("direct flights only, no layovers");
+      if (hotel)  parts.push(`prefers ${hotel} hotels`);
+      return parts.join("; ");
+    }
+
+    // ── History ──
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem("ta-history") || "[]"); } catch { return []; }
+    }
+
+    function saveToHistory(entry) {
+      const h = getHistory().filter(e => !(e.from === entry.from && e.to === entry.to && e.date === entry.date));
+      h.unshift(entry);
+      localStorage.setItem("ta-history", JSON.stringify(h.slice(0, 5)));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const h = getHistory();
+      const sec = document.getElementById("historySection");
+      const chips = document.getElementById("historyChips");
+      if (!h.length) { sec.style.display = "none"; return; }
+      sec.style.display = "block";
+      chips.innerHTML = h.map((e, i) => `
+        <button class="history-chip" onclick="restoreSearch(${i})">${escHtml(e.from)} → ${escHtml(e.to)} · ${escHtml(e.label)}</button>
+      `).join("") + `<button class="history-clear" onclick="clearHistory()">Clear</button>`;
+    }
+
+    function restoreSearch(idx) {
+      const e = getHistory()[idx];
+      if (!e) return;
+      document.getElementById("from").value   = e.from;
+      document.getElementById("to").value     = e.to;
+      document.getElementById("date").value   = e.date;
+      document.getElementById("nights").value = e.nights;
+      document.getElementById("adults").value = e.adults;
+      search();
+    }
+
+    function clearHistory() {
+      localStorage.removeItem("ta-history");
+      renderHistory();
+    }
+
+    // ── NL parse ──
     async function parseNL() {
       const text = document.getElementById("nlInput").value.trim();
       if (!text) return;
-
       const btn = document.getElementById("parseBtn");
-      btn.disabled = true;
-      btn.textContent = "…";
-
+      btn.disabled = true; btn.textContent = "…";
       try {
         const res = await fetch("/api/parse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
         });
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.error);
-
-        if (d.from)   document.getElementById("from").value   = d.from;
-        if (d.to)     document.getElementById("to").value     = d.to;
-        if (d.date)   document.getElementById("date").value   = d.date;
-        if (d.nights) document.getElementById("nights").value = d.nights;
-        if (d.adults) document.getElementById("adults").value = d.adults;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        if (data.from)   document.getElementById("from").value   = data.from;
+        if (data.to)     document.getElementById("to").value     = data.to;
+        if (data.date)   document.getElementById("date").value   = data.date;
+        if (data.nights) document.getElementById("nights").value = data.nights;
+        if (data.adults) document.getElementById("adults").value = data.adults;
       } catch (err) {
         showError("Could not parse trip: " + err.message);
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Fill ↓";
+        btn.disabled = false; btn.textContent = "Fill ↓";
       }
     }
 
+    // ── Search ──
     async function search() {
       const from   = document.getElementById("from").value.trim().toUpperCase();
       const to     = document.getElementById("to").value.trim().toUpperCase();
@@ -456,54 +487,60 @@
       }
 
       const btn = document.getElementById("searchBtn");
-      btn.disabled = true;
-      btn.textContent = "Searching…";
+      btn.disabled = true; btn.textContent = "Searching…";
       showLoading();
 
       try {
         const res = await fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to, date, nights, adults }),
+          body: JSON.stringify({ from, to, date, nights, adults, preferences: getPrefsText() }),
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        // Save to history
+        const depart = new Date(date);
+        const ret = new Date(depart);
+        ret.setDate(ret.getDate() + nights);
+        saveToHistory({
+          from, to, date, nights, adults,
+          label: depart.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + "–" +
+                 ret.toLocaleDateString("en-US",   { month: "short", day: "numeric" }),
+        });
+
         showResult(data);
       } catch (err) {
         showError(err.message);
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Find best flight & hotel";
+        btn.disabled = false; btn.textContent = "Find best flight & hotel";
       }
     }
 
+    // ── Loading ──
     let _loadingTimer = null;
 
     const STEPS = [
-      { label: "Looking up routes and airlines",      delay: 0     },
-      { label: "Generating flight options",           delay: 5000  },
-      { label: "Searching for hotels",                delay: 10000 },
-      { label: "Comparing prices and options",        delay: 16000 },
-      { label: "Picking the best flight and hotel",   delay: 22000 },
+      { label: "Looking up routes and airlines",    delay: 0     },
+      { label: "Generating flight options",         delay: 5000  },
+      { label: "Searching for hotels",              delay: 10000 },
+      { label: "Comparing prices and options",      delay: 16000 },
+      { label: "Picking the best flight and hotel", delay: 22000 },
     ];
 
     function showLoading() {
       if (_loadingTimer) clearInterval(_loadingTimer);
-
       document.getElementById("result").innerHTML = `
         <div class="result-card loading-card">
           <div class="loading-steps" id="loadingSteps">
             ${STEPS.map((s, i) => `
-              <div class="step" id="step${i}" data-delay="${s.delay}">
+              <div class="step" id="step${i}">
                 <span class="step-icon"><span class="step-dot"></span></span>
                 <span>${s.label}</span>
               </div>`).join("")}
           </div>
         </div>`;
-
       const start = Date.now();
-
       function tick() {
         const elapsed = Date.now() - start;
         let activeSet = false;
@@ -522,7 +559,6 @@
           }
         }
       }
-
       tick();
       _loadingTimer = setInterval(tick, 500);
     }
@@ -531,17 +567,19 @@
       if (_loadingTimer) { clearInterval(_loadingTimer); _loadingTimer = null; }
     }
 
+    // ── Results ──
     function showError(msg) {
       stopLoading();
-      document.getElementById("result").innerHTML = `
-        <div class="error-msg">${escHtml(msg)}</div>`;
+      document.getElementById("result").innerHTML = `<div class="error-msg">${escHtml(msg)}</div>`;
     }
 
-    function showResult({ flights, winner, runnerup, reason, datesLabel, hotel }) {
+    function showResult({ flights, winner, runnerup, reason, datesLabel, hotel, nights: n, adults: a }) {
       stopLoading();
-      const winnerIdx = flights.findIndex(f => f.flight === winner.flight);
+      const nightCount = n || parseInt(document.getElementById("nights").value, 10);
+      const adultCount = a || parseInt(document.getElementById("adults").value, 10);
+      const winnerIdx  = flights.findIndex(f => f.flight === winner.flight);
 
-      const rows = flights.map((f, i) => `
+      const flightRows = flights.map((f, i) => `
         <tr class="${i === winnerIdx ? "is-winner" : ""}">
           <td>${escHtml(f.carrier)} ${escHtml(f.flight)}${i === winnerIdx ? '<span class="badge">pick</span>' : ""}</td>
           <td>${escHtml(f.departs)}–${escHtml(f.arrives)}</td>
@@ -550,10 +588,15 @@
           <td>$${f.price_usd}</td>
         </tr>`).join("");
 
-      const nights = hotel ? Math.round(
-        (new Date(document.getElementById("date").value.replace(/-/g,"/")) - new Date(document.getElementById("date").value.replace(/-/g,"/"))) / 86400000
-      ) : null;
-      const nightCount = parseInt(document.getElementById("nights").value, 10);
+      const hotelWinnerIdx = hotel ? hotel.hotels.findIndex(h => h.name === hotel.winner.name) : -1;
+      const hotelRows = hotel ? hotel.hotels.map((h, i) => `
+        <tr class="${i === hotelWinnerIdx ? "is-winner" : ""}">
+          <td>${escHtml(h.name)}${i === hotelWinnerIdx ? '<span class="badge">pick</span>' : ""}</td>
+          <td>${escHtml(h.area)}</td>
+          <td>${"★".repeat(h.stars || 0)}</td>
+          <td>${h.rating}/10</td>
+          <td>$${h.price_per_night_usd}/night</td>
+        </tr>`).join("") : "";
 
       const hotelHtml = hotel ? `
         <div class="result-card" style="margin-top:16px">
@@ -567,9 +610,7 @@
             &nbsp;·&nbsp; $${hotel.winner.price_per_night_usd * nightCount} total
           </div>
           <div class="reason">${escHtml(hotel.reason)}</div>
-          <a class="book-btn" href="${escHtml(hotel.winner.booking_url)}" target="_blank" rel="noopener">
-            Book now →
-          </a>
+          <a class="book-btn" href="${escHtml(hotel.winner.booking_url)}" target="_blank" rel="noopener">Book now →</a>
           <hr class="divider">
           <div class="runnerup-label">Runner-up</div>
           <div class="runnerup-row">
@@ -578,38 +619,27 @@
           </div>
           <details class="all-flights">
             <summary>All options (${hotel.hotels.length})</summary>
-            <table class="flight-table">
-              <thead><tr><th>Hotel</th><th>Area</th><th>Stars</th><th>Rating</th><th>Price/night</th></tr></thead>
-              <tbody>
-                ${hotel.hotels.map((h, i) => `
-                  <tr class="${i === hotel.hotels.indexOf(hotel.winner) ? "is-winner" : ""}">
-                    <td>${escHtml(h.name)}${h === hotel.winner ? '<span class="badge">pick</span>' : ""}</td>
-                    <td>${escHtml(h.area)}</td>
-                    <td>${"★".repeat(h.stars || 0)}</td>
-                    <td>${h.rating}</td>
-                    <td>$${h.price_per_night_usd}</td>
-                  </tr>`).join("")}
-              </tbody>
-            </table>
+            <div class="table-scroll">
+              <table class="flight-table">
+                <thead><tr><th>Hotel</th><th>Area</th><th>Stars</th><th>Rating</th><th>Price</th></tr></thead>
+                <tbody>${hotelRows}</tbody>
+              </table>
+            </div>
           </details>
         </div>` : "";
 
-      const adults   = parseInt(document.getElementById("adults").value, 10);
-      const flightTotal = winner.price_usd * adults;
+      const flightTotal = winner.price_usd * adultCount;
       const hotelTotal  = hotel ? hotel.winner.price_per_night_usd * nightCount : 0;
       const tripTotal   = flightTotal + hotelTotal;
 
       const totalHtml = `
         <div class="trip-total">
-          <div>
-            <div class="trip-total-label">Estimated trip total</div>
-          </div>
+          <div class="trip-total-label">Estimated trip total</div>
           <div>
             <div class="trip-total-amount">$${tripTotal.toLocaleString()}</div>
             <div class="trip-total-breakdown">
-              ${adults > 1 ? `${adults}× ` : ""}$${winner.price_usd} flight
-              ${hotel ? `+ ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}
-              ${adults > 1 ? `· per person ~$${Math.round(tripTotal / adults).toLocaleString()}` : ""}
+              ${adultCount > 1 ? `${adultCount}× ` : ""}$${winner.price_usd} flight${hotel ? ` + ${nightCount}× $${hotel.winner.price_per_night_usd} hotel` : ""}
+              ${adultCount > 1 ? ` · ~$${Math.round(tripTotal / adultCount).toLocaleString()}/person` : ""}
             </div>
           </div>
         </div>`;
@@ -625,9 +655,7 @@
             <strong>$${winner.price_usd}</strong>
           </div>
           <div class="reason">${escHtml(reason)}</div>
-          <a class="book-btn" href="${escHtml(winner.booking_url)}" target="_blank" rel="noopener">
-            Book now →
-          </a>
+          <a class="book-btn" href="${escHtml(winner.booking_url)}" target="_blank" rel="noopener">Book now →</a>
           <hr class="divider">
           <div class="runnerup-label">Runner-up</div>
           <div class="runnerup-row">
@@ -636,10 +664,12 @@
           </div>
           <details class="all-flights">
             <summary>All options (${flights.length})</summary>
-            <table class="flight-table">
-              <thead><tr><th>Flight</th><th>Times</th><th>Duration</th><th>Stops</th><th>Price</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
+            <div class="table-scroll">
+              <table class="flight-table">
+                <thead><tr><th>Flight</th><th>Times</th><th>Duration</th><th>Stops</th><th>Price</th></tr></thead>
+                <tbody>${flightRows}</tbody>
+              </table>
+            </div>
           </details>
         </div>
         ${hotelHtml}
@@ -648,16 +678,13 @@
 
     function escHtml(s) {
       return String(s ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
     document.getElementById("nlInput").addEventListener("keydown", e => {
       if (e.key === "Enter") parseNL();
     });
-
     document.addEventListener("keydown", e => {
       if (e.key === "Enter" && document.activeElement.id !== "nlInput") search();
     });

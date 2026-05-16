@@ -74,7 +74,7 @@ Rules:
   }
 });
 
-async function getFlights({ from, to, date, adults }) {
+async function getFlights({ from, to, date, adults, preferences = "" }) {
   // 1. Try Amadeus (real prices)
   if (process.env.AMADEUS_CLIENT_ID && process.env.AMADEUS_CLIENT_SECRET) {
     try {
@@ -96,11 +96,12 @@ async function getFlights({ from, to, date, adults }) {
   }
 
   // 3. AI-generated flights + recommendation in one call
+  const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
   const prompt = `You are a personal travel advisor and flight data expert.
 
 Generate 4 realistic one-way flight options from ${from} to ${to} on ${date} for ${adults} adult${adults > 1 ? "s" : ""}, then pick the best one.
 
-Use real airlines that fly this route. Use realistic 2026 times and USD prices. Include a mix: cheapest, fastest, a premium carrier, and optionally one with a stop.
+Use real airlines that fly this route. Use realistic 2026 times and USD prices. Include a mix: cheapest, fastest, a premium carrier, and optionally one with a stop.${prefLine}
 
 Respond with ONLY valid JSON — no markdown:
 {
@@ -131,7 +132,7 @@ Respond with ONLY valid JSON:
   return { flights, winner: flights[wi], runnerup: flights[Math.min(ri, flights.length - 1)], reason };
 }
 
-async function getHotels({ to, date, nights, adults }) {
+async function getHotels({ to, date, nights, adults, preferences = "" }) {
   const checkOut = new Date(date);
   checkOut.setDate(checkOut.getDate() + Number(nights));
   const checkOutStr = checkOut.toISOString().slice(0, 10);
@@ -159,14 +160,16 @@ Respond with ONLY valid JSON — no markdown:
   "reason": "One sentence with real numbers explaining the pick."
 }`.trim();
 
-  const raw = await askClaude(prompt);
+  const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
+  const fullPrompt = prompt + prefLine;
+  const raw = await askClaude(fullPrompt);
   const { city, hotels, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
   return { city, hotels, winner: hotels[wi], runnerup: hotels[Math.min(ri, hotels.length - 1)], reason };
 }
 
 // POST /api/search
 app.post("/api/search", async (req, res) => {
-  const { from, to, date, nights = 4, adults = 1 } = req.body;
+  const { from, to, date, nights = 4, adults = 1, preferences = "" } = req.body;
 
   if (!from || !to || !date) {
     return res.status(400).json({ error: "from, to, and date are required" });
@@ -179,8 +182,8 @@ app.post("/api/search", async (req, res) => {
 
   try {
     const [flightResult, hotelResult] = await Promise.all([
-      getFlights({ from, to, date, adults }),
-      getHotels({ to, date, nights, adults }),
+      getFlights({ from, to, date, adults, preferences }),
+      getHotels({ to, date, nights, adults, preferences }),
     ]);
 
     res.json({ ...flightResult, hotel: hotelResult, datesLabel, nights: Number(nights), adults: Number(adults) });
