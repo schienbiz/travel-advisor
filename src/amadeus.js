@@ -96,6 +96,21 @@ export async function searchFlightsAmadeus({ from, to, date, adults = 1, limit =
     const last      = segments[segments.length - 1];
     const carrier   = offer.validatingAirlineCodes?.[0] ?? first.carrierCode;
 
+    // Extract layover details from connecting segments
+    const layovers = [];
+    for (let i = 0; i < segments.length - 1; i++) {
+      const arrAt  = new Date(segments[i].arrival.at);
+      const depAt  = new Date(segments[i + 1].departure.at);
+      const mins   = Math.round((depAt - arrAt) / 60000);
+      const h      = Math.floor(mins / 60);
+      const m      = mins % 60;
+      layovers.push({
+        airport:         segments[i].arrival.iataCode,
+        duration:        m > 0 ? `${h}h${String(m).padStart(2, "0")}m` : `${h}h`,
+        durationMinutes: mins,
+      });
+    }
+
     return {
       carrier:     AIRLINE_NAMES[carrier] ?? carrier,
       flight:      `${first.carrierCode}${first.number}`,
@@ -104,6 +119,7 @@ export async function searchFlightsAmadeus({ from, to, date, adults = 1, limit =
       duration:    parseDuration(itinerary.duration),
       stops:       segments.length - 1,
       price_usd:   Math.round(parseFloat(offer.price.total)),
+      layovers,
       booking_url: AIRLINE_URLS[carrier] ?? "https://www.google.com/flights",
     };
   });

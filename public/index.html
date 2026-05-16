@@ -215,6 +215,34 @@
     }
     .book-btn:hover { opacity: 0.85; }
 
+    .book-links { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .book-btn-secondary {
+      display: inline-block;
+      padding: 10px 16px;
+      background: transparent;
+      color: #71717a;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .book-btn-secondary:hover { border-color: #52525b; color: #a1a1aa; }
+
+    .layover-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+    .layover-ok   { background: #1c2e22; color: #4ade80; }
+    .layover-warn { background: #2e2010; color: #fb923c; }
+    .layover-bad  { background: #2e1010; color: #f87171; }
+
     .divider { border: none; border-top: 1px solid #27272a; margin: 20px 0; }
 
     .runnerup-label { font-size: 0.75rem; color: #52525b; font-weight: 500; margin-bottom: 6px; }
@@ -579,14 +607,23 @@
       const adultCount = a || parseInt(document.getElementById("adults").value, 10);
       const winnerIdx  = flights.findIndex(f => f.flight === winner.flight);
 
-      const flightRows = flights.map((f, i) => `
+      const flightRows = flights.map((f, i) => {
+        const layoverCell = f.layovers?.length
+          ? f.layovers.map(l => {
+              const mins = l.durationMinutes ?? 999;
+              const cls  = mins < 60 ? "layover-bad" : mins < 120 ? "layover-warn" : "layover-ok";
+              return `<span class="layover-tag ${cls}">${escHtml(l.airport)} ${escHtml(l.duration)}</span>`;
+            }).join(" ")
+          : "direct";
+        return `
         <tr class="${i === winnerIdx ? "is-winner" : ""}">
           <td>${escHtml(f.carrier)} ${escHtml(f.flight)}${i === winnerIdx ? '<span class="badge">pick</span>' : ""}</td>
-          <td>${escHtml(f.departs)}–${escHtml(f.arrives)}</td>
+          <td>${f.departs ? escHtml(f.departs) + "–" + escHtml(f.arrives) : "–"}</td>
           <td>${escHtml(f.duration)}</td>
-          <td>${f.stops === 0 ? "direct" : f.stops + " stop"}</td>
+          <td>${layoverCell}</td>
           <td>$${f.price_usd}</td>
-        </tr>`).join("");
+        </tr>`;
+      }).join("");
 
       const hotelWinnerIdx = hotel ? hotel.hotels.findIndex(h => h.name === hotel.winner.name) : -1;
       const hotelRows = hotel ? hotel.hotels.map((h, i) => `
@@ -655,18 +692,22 @@
             <strong>$${winner.price_usd}</strong>
           </div>
           <div class="reason">${escHtml(reason)}</div>
-          <a class="book-btn" href="${escHtml(winner.booking_url)}" target="_blank" rel="noopener">Book now →</a>
+          ${layoverHtml(winner)}
+          <div class="book-links" style="margin-top:4px">
+            <a class="book-btn" href="${escHtml(winner.aviasales_url || winner.booking_url)}" target="_blank" rel="noopener">Book on Aviasales →</a>
+            <a class="book-btn-secondary" href="https://www.google.com/flights?q=flights+from+${encodeURIComponent(document.getElementById('from').value)}+to+${encodeURIComponent(document.getElementById('to').value)}+on+${encodeURIComponent(document.getElementById('date').value)}" target="_blank" rel="noopener">Seat map (Google Flights)</a>
+          </div>
           <hr class="divider">
           <div class="runnerup-label">Runner-up</div>
           <div class="runnerup-row">
-            <span class="runnerup-name">${escHtml(runnerup.carrier)} ${escHtml(runnerup.flight)} · ${escHtml(runnerup.departs)}–${escHtml(runnerup.arrives)} · ${escHtml(runnerup.duration)}</span>
+            <span class="runnerup-name">${escHtml(runnerup.carrier)} ${escHtml(runnerup.flight)}${runnerup.departs ? ` · ${escHtml(runnerup.departs)}–${escHtml(runnerup.arrives)}` : ""} · ${escHtml(runnerup.duration)}</span>
             <span class="runnerup-price">$${runnerup.price_usd}</span>
           </div>
           <details class="all-flights">
             <summary>All options (${flights.length})</summary>
             <div class="table-scroll">
               <table class="flight-table">
-                <thead><tr><th>Flight</th><th>Times</th><th>Duration</th><th>Stops</th><th>Price</th></tr></thead>
+                <thead><tr><th>Flight</th><th>Times</th><th>Duration</th><th>Via / Layover</th><th>Price</th></tr></thead>
                 <tbody>${flightRows}</tbody>
               </table>
             </div>
@@ -674,6 +715,18 @@
         </div>
         ${hotelHtml}
         ${totalHtml}`;
+    }
+
+    function layoverHtml(flight) {
+      if (!flight.layovers?.length) return "";
+      return flight.layovers.map(l => {
+        const mins = l.durationMinutes ?? 999;
+        const cls  = mins < 60 ? "layover-bad" : mins < 120 ? "layover-warn" : "layover-ok";
+        const warn = mins < 120 ? " ⚠ under 2h" : "";
+        return `<span class="layover-tag ${cls}" style="margin-bottom:12px;display:inline-flex">
+          via ${escHtml(l.airport)}${l.city ? " (" + escHtml(l.city) + ")" : ""} · ${escHtml(l.duration)}${warn}
+        </span>`;
+      }).join(" ");
     }
 
     function escHtml(s) {
