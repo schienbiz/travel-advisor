@@ -113,12 +113,12 @@ Rules:
   }
 });
 
-async function getFlights({ from, to, date, adults, preferences = "", priceHistory = [] }) {
+async function getFlights({ from, to, date, adults, preferences = "", priceHistory = [], userFindings = "" }) {
   // 1. Try Travelpayouts (real prices, last 48h) — enrich + supplement via AI
   if (process.env.TRAVELPAYOUTS_TOKEN) {
     try {
       const flights = await getFlightPrices({ from, to, date, token: process.env.TRAVELPAYOUTS_TOKEN });
-      if (flights?.length >= 3) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory });
+      if (flights?.length >= 3) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory, userFindings });
     } catch { /* fall through */ }
   }
 
@@ -130,7 +130,7 @@ async function getFlights({ from, to, date, adults, preferences = "", priceHisto
         clientId: process.env.AMADEUS_CLIENT_ID,
         clientSecret: process.env.AMADEUS_CLIENT_SECRET,
       });
-      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory });
+      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory, userFindings });
     } catch { /* fall through */ }
   }
 
@@ -138,7 +138,7 @@ async function getFlights({ from, to, date, adults, preferences = "", priceHisto
   if (process.env.TEQUILA_API_KEY) {
     try {
       const flights = await searchFlights({ from, to, date, adults, apiKey: process.env.TEQUILA_API_KEY });
-      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory });
+      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory, userFindings });
     } catch { /* fall through */ }
   }
 
@@ -194,7 +194,7 @@ Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "
 
 // Use real cached prices as anchors, then have AI assign real airlines/times/layovers
 // and supplement to 6 diverse options, then pick a winner.
-async function enrichAndRecommend(realFlights, { from, to, date, adults, preferences = "", priceHistory = [] }) {
+async function enrichAndRecommend(realFlights, { from, to, date, adults, preferences = "", priceHistory = [], userFindings = "" }) {
   const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
   const histLine = priceHistory.length
     ? `\nHistorical winner prices for ${from}→${to}: ${priceHistory.map(h => `$${h.price} (${h.ago})`).join(", ")}`
@@ -215,9 +215,14 @@ async function enrichAndRecommend(realFlights, { from, to, date, adults, prefere
     })
     .join("\n");
 
+  const userBlock = userFindings.trim()
+    ? `\nThe traveler also found these options themselves — treat them with the same confidence as the API prices above:\n${userFindings.trim()}\nIncorporate their finds into the 6 options when relevant. If a user find is the best overall, pick it as winner. Mark those with "source": "user".`
+    : "";
+
   const prompt = `You are a flight scheduling expert. Real cached prices for ${from}→${to} around ${date}:
 
 ${anchors}
+${userBlock}
 
 Using these price points as hard constraints (do not invent lower prices), generate 6 diverse one-way flight options for ${adults} adult${adults > 1 ? "s" : ""} departing ${date}. Where a real airline is shown above, use that airline for the matching price tier. Cover distinct archetypes:
 1. Cheapest (match or beat the lowest cached price — may have 2 stops)
@@ -242,7 +247,8 @@ Respond with ONLY valid JSON — no markdown:
       "stops": 0,
       "price_usd": 000,
       "booking_url": "https://www.airline.com",
-      "layovers": []
+      "layovers": [],
+      "source": "api"
     }
   ],
   "winner_index": 0,
@@ -250,7 +256,8 @@ Respond with ONLY valid JSON — no markdown:
   "reason": "One sentence with real numbers."${histLine ? `,\n  "trend": { "direction": "down", "message": "..." }` : ""}
 }
 
-Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
+Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]
+source field: "user" for traveler-provided finds, "api" for everything else.`.trim();
 
   const raw = await askClaude(prompt);
   const { flights, winner_index: wi, runnerup_index: ri, reason, trend } = parseJson(raw);
@@ -258,6 +265,7 @@ Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "duratio
   const enriched = flights.map(f => ({
     ...f,
     layovers: f.layovers ?? [],
+    source: f.source ?? "api",
     aviasales_url: aviasalesUrl(from, to, date, adults),
   }));
 
@@ -266,7 +274,7 @@ Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "duratio
 
 
 
-async function getHotels({ to, date, nights, adults, preferences = "" }) {
+async function getHotels({ to, date, nights, adults, preferences = "", userFindings = "" }) {
   const checkOut = new Date(date);
   checkOut.setDate(checkOut.getDate() + Number(nights));
   const checkOutStr = checkOut.toISOString().slice(0, 10);
@@ -275,6 +283,10 @@ async function getHotels({ to, date, nights, adults, preferences = "" }) {
     ? `near the airport (convenience matters for a short ${nights}-night stay)`
     : `in the city center or a well-connected neighborhood (NOT airport hotels — the traveler wants to experience the city for ${nights} nights)`;
 
+  const userBlock = userFindings.trim()
+    ? `\nThe traveler has also found these hotels themselves — treat them with the same confidence as your own research:\n${userFindings.trim()}\nIncorporate their finds into the 3 options when relevant. If a user find is better, pick it as winner. Mark those with "source": "user".`
+    : "";
+
   const prompt = `You are a hotel expert. Generate 3 realistic hotel options ${stayType} for destination ${to}, check-in ${date}, check-out ${checkOutStr}, for ${adults} adult${adults > 1 ? "s" : ""}.
 
 Use real hotels that exist in this city. Use realistic 2026 USD prices per night. You MUST include exactly three tiers with a meaningful price spread:
@@ -282,17 +294,19 @@ Use real hotels that exist in this city. Use realistic 2026 USD prices per night
 - Mid-range: a comfortable 3–4 star in a good location (aim for the middle 50%)
 - Premium: a notable 4–5 star hotel (aim for the upper 25%)
 The three prices must be clearly distinct — no two options should be within 20% of each other.
+${userBlock}
 
 Respond with ONLY valid JSON — no markdown:
 {
   "city": "City Name",
   "hotels": [
-    { "name": "Hotel Name", "area": "Neighborhood", "stars": 4, "rating": 8.5, "price_per_night_usd": 120 }
+    { "name": "Hotel Name", "area": "Neighborhood", "stars": 4, "rating": 8.5, "price_per_night_usd": 120, "source": "api" }
   ],
   "winner_index": 0,
   "runnerup_index": 1,
   "reason": "One sentence with real numbers explaining the pick."
-}`.trim();
+}
+source field: "user" for traveler-provided hotels, "api" for everything else.`.trim();
 
   const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
   const fullPrompt = prompt + prefLine;
@@ -309,7 +323,7 @@ Respond with ONLY valid JSON — no markdown:
 
 // POST /api/flights
 app.post("/api/flights", async (req, res) => {
-  const { tripType = "oneway", from, to, date, returnDate, legs, adults = 1, preferences = "", priceHistory = [] } = req.body;
+  const { tripType = "oneway", from, to, date, returnDate, legs, adults = 1, preferences = "", priceHistory = [], userFindings = "" } = req.body;
   function fmtD(d) { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
   try {
     if (tripType === "roundtrip") {
@@ -342,7 +356,7 @@ app.post("/api/flights", async (req, res) => {
       const dep = new Date(date), ret2 = new Date(dep);
       ret2.setDate(ret2.getDate() + Number(req.body.nights ?? 4));
       const datesLabel = `${dep.toLocaleDateString("en-US",{month:"short",day:"numeric"})}–${ret2.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;
-      const result = await getFlights({ from, to, date, adults, preferences, priceHistory });
+      const result = await getFlights({ from, to, date, adults, preferences, priceHistory, userFindings });
       return res.json({ tripType: "oneway", ...result, datesLabel, adults: Number(adults) });
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -350,10 +364,10 @@ app.post("/api/flights", async (req, res) => {
 
 // POST /api/hotel
 app.post("/api/hotel", async (req, res) => {
-  const { to, date, nights = 4, adults = 1, preferences = "" } = req.body;
+  const { to, date, nights = 4, adults = 1, preferences = "", userFindings = "" } = req.body;
   if (!to || !date) return res.status(400).json({ error: "to and date are required" });
   try {
-    const result = await getHotels({ to, date, nights, adults, preferences });
+    const result = await getHotels({ to, date, nights, adults, preferences, userFindings });
     return res.json({ ...result, nights: Number(nights), adults: Number(adults) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
