@@ -1207,9 +1207,19 @@
 
       // Find cheapest date insight
       const cheapest = dates.find(d => d.price_usd === minPrice);
-      const saving = cheapest && cheapest.depart_date !== activeDate
-        ? `$${dates.find(d => d.depart_date === activeDate)?.price_usd ?? "?"} on your date vs $${minPrice} on ${new Date(cheapest.depart_date + "T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})} — fly ${Math.abs((new Date(cheapest.depart_date) - new Date(activeDate)) / 86400000)} day${Math.abs((new Date(cheapest.depart_date) - new Date(activeDate)) / 86400000) === 1 ? "" : "s"} ${new Date(cheapest.depart_date) < new Date(activeDate) ? "earlier" : "later"} and save $${dates.find(d => d.depart_date === activeDate)?.price_usd - minPrice}.`
-        : null;
+      const activeDateEntry = dates.find(d => d.depart_date === activeDate);
+      let saving = null;
+      if (cheapest && cheapest.depart_date !== activeDate) {
+        const cheapLabel = new Date(cheapest.depart_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const daysDiff = Math.round(Math.abs((new Date(cheapest.depart_date) - new Date(activeDate)) / 86400000));
+        const direction = new Date(cheapest.depart_date) < new Date(activeDate) ? "earlier" : "later";
+        if (activeDateEntry?.price_usd != null) {
+          const savingsAmt = activeDateEntry.price_usd - minPrice;
+          saving = `$${activeDateEntry.price_usd} on your date vs $${minPrice} on ${cheapLabel} — fly ${daysDiff} day${daysDiff === 1 ? "" : "s"} ${direction} and save $${savingsAmt}.`;
+        } else {
+          saving = `Cheapest nearby: ${cheapLabel} at $${minPrice} — ${daysDiff} day${daysDiff === 1 ? "" : "s"} ${direction}.`;
+        }
+      }
 
       return `<div class="date-strip-wrap">
         <div class="date-strip-scroll">${pills}</div>
