@@ -34,14 +34,10 @@ export async function getCalendarPrices({ from, to, date, token }) {
   const json = await res.json();
   if (!json.success || !json.data) return [];
 
-  // Flatten nested {origin: {destination: {date: data}}} structure
+  // Flat structure: { "YYYY-MM-DD": { origin, destination, airline, price, ... } }
   const all = [];
-  for (const originData of Object.values(json.data)) {
-    for (const destData of Object.values(originData)) {
-      for (const [dayStr, info] of Object.entries(destData)) {
-        all.push({ ...info, depart_date: dayStr });
-      }
-    }
+  for (const [dayStr, info] of Object.entries(json.data)) {
+    all.push({ ...info, depart_date: dayStr });
   }
   if (!all.length) return [];
 
