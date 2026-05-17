@@ -21,7 +21,7 @@ function fmtTimeFromIso(isoStr) {
  * Returns entries sorted by proximity to target date, with airline codes
  * and departure times when available.
  */
-async function getCalendarPrices({ from, to, date, token }) {
+export async function getCalendarPrices({ from, to, date, token }) {
   const [y, m] = date.split("-");
   const monthParam = `${y}-${m}`;
 

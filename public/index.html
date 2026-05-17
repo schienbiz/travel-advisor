@@ -367,6 +367,42 @@
     .total-breakdown { font-size: 0.78rem; color: var(--text3); line-height: 1.7; }
     .total-per { font-size: 0.82rem; color: var(--accent2); font-weight: 600; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(99,102,241,0.15); }
 
+    /* ── Date strip ── */
+    .date-strip-wrap { margin-bottom: 18px; }
+    .date-strip-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .date-strip-scroll::-webkit-scrollbar { display: none; }
+    .date-pill {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+      padding: 7px 10px; border-radius: 10px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface2);
+      font-size: 0.72rem; transition: all 0.15s; min-width: 54px;
+    }
+    .date-pill:hover { border-color: var(--accent); background: var(--surface3); }
+    .date-pill.active { border-color: var(--accent); background: var(--accent-dim); }
+    .date-pill.cheapest { border-color: rgba(34,197,94,0.4); background: var(--green-dim); }
+    .date-pill .dp-day { color: var(--text3); font-size: 0.65rem; margin-bottom: 2px; }
+    .date-pill .dp-price { color: var(--text); font-weight: 700; }
+    .date-pill.cheapest .dp-price { color: var(--green); }
+    .date-pill.active .dp-price { color: var(--accent2); }
+    .date-strip-insight { font-size: 0.78rem; color: var(--text2); margin-top: 8px; line-height: 1.5; padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
+
+    /* ── Price trend badge ── */
+    .trend-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-left: 8px; }
+    .trend-down { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .trend-up   { background: rgba(249,115,22,0.1); color: var(--orange); border: 1px solid rgba(249,115,22,0.2); }
+    .trend-stable { background: var(--surface3); color: var(--text3); border: 1px solid var(--border); }
+
+    /* ── Load more button ── */
+    .btn-load-more {
+      width: 100%; margin-top: 12px; padding: 12px;
+      background: none; border: 1px dashed var(--border2);
+      border-radius: 13px; color: var(--text3);
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; min-height: 0;
+    }
+    .btn-load-more:hover { border-color: var(--accent); color: var(--accent2); opacity: 1; }
+    .btn-load-more:disabled { opacity: 0.4; cursor: default; }
+
     /* ── Loading ── */
     .loading-wrap {
       background: var(--surface); border: 1px solid var(--border);
@@ -715,6 +751,25 @@
       return parts.join("; ");
     }
 
+    // ── Price memory (per route) ──
+    function routeKey(from, to) { return `ta-px-${from}-${to}`; }
+    function loadPriceHistory(from, to) {
+      try { return JSON.parse(localStorage.getItem(routeKey(from, to)) || "[]"); } catch { return []; }
+    }
+    function savePriceHistory(from, to, price_usd) {
+      const key = routeKey(from, to);
+      const h = loadPriceHistory(from, to);
+      h.unshift({ price: price_usd, ts: Date.now() });
+      localStorage.setItem(key, JSON.stringify(h.slice(0, 20)));
+    }
+    function timeAgo(ts) {
+      const s = Math.round((Date.now() - ts) / 1000);
+      if (s < 60) return "just now";
+      if (s < 3600) return `${Math.round(s/60)}min ago`;
+      if (s < 86400) return `${Math.round(s/3600)}h ago`;
+      return `${Math.round(s/86400)}d ago`;
+    }
+
     function getHistory() { try { return JSON.parse(localStorage.getItem("ta-history") || "[]"); } catch { return []; } }
     function saveToHistory(entry) {
       const h = getHistory().filter(e => !(e.from===entry.from && e.to===entry.to && e.date===entry.date));
@@ -813,6 +868,9 @@
         saveToHistory({ from, to, date, nights, adults,
           label: dep.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + "–" +
                  ret.toLocaleDateString("en-US",{month:"short",day:"numeric"}) });
+        // attach price history for AI trend analysis
+        const ph = loadPriceHistory(from, to);
+        if (ph.length) body.priceHistory = ph.slice(0, 5).map(h => ({ price: h.price, ago: timeAgo(h.ts) }));
       }
 
       const btn = document.getElementById("flightBtn");
@@ -821,7 +879,14 @@
       try {
         const r = await fetch("/api/flights", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
         const data = await r.json(); if (!r.ok) throw new Error(data.error || "Unknown error");
+        // save winner price to history
+        if (body.tripType === "oneway" && data.winner?.price_usd)
+          savePriceHistory(body.from, body.to, data.winner.price_usd);
+        if (body.tripType === "oneway") _lastFlightSearch = { from: body.from, to: body.to, date: body.date, adults: body.adults, preferences: body.preferences };
         showFlightResult(data);
+        // async: load date strip for one-way
+        if (body.tripType === "oneway" && body.from && body.to && body.date)
+          fetchDateStrip(body.from, body.to, body.date);
       } catch (err) { showFlightError(err.message); }
       finally { btn.disabled = false; btn.textContent = "✈ Search Flights"; }
     }
@@ -1062,14 +1127,17 @@
       document.getElementById("hotelResult").innerHTML = renderHotelCard(data, data.nights);
     }
 
-    function showOneWayResult({ flights, winner, reason, datesLabel }) {
+    function showOneWayResult({ flights, winner, reason, datesLabel, trend }) {
       const fromVal = document.getElementById("from").value.toUpperCase();
       const toVal   = document.getElementById("to").value.toUpperCase();
       const dateVal = document.getElementById("date").value;
       const cards   = renderFlightCards(flights, winner, reason, fromVal, toVal, dateVal);
+      const trendBadge = trend ? renderTrendBadge(trend) : "";
       document.getElementById("flightResult").innerHTML = `
-        <div class="section-hdr">Flights · ${esc(datesLabel)} <span class="section-hdr-badge">${flights.length} options</span></div>
-        ${cards}`;
+        <div class="section-hdr">Flights · ${esc(datesLabel)} <span class="section-hdr-badge">${flights.length} options</span>${trendBadge}</div>
+        <div id="dateStripSlot"></div>
+        <div id="flightCards">${cards}</div>
+        <button class="btn-load-more" id="loadMoreBtn" onclick="loadMoreFlights()">Show more options →</button>`;
     }
 
     function showRoundTripResult({ outbound, return: ret }) {
@@ -1097,6 +1165,91 @@
           ${cards}`;
       }).join("");
       document.getElementById("flightResult").innerHTML = legsHtml;
+    }
+
+    // ── Trend badge ──
+    function renderTrendBadge(trend) {
+      if (!trend?.direction || !trend?.message) return "";
+      const cls = trend.direction === "down" ? "trend-down" : trend.direction === "up" ? "trend-up" : "trend-stable";
+      const icon = trend.direction === "down" ? "↓" : trend.direction === "up" ? "↑" : "→";
+      return `<span class="trend-badge ${cls}" title="${esc(trend.message)}">${icon} ${esc(trend.message)}</span>`;
+    }
+
+    // ── Date strip ──
+    let _dateStripSearch = null;
+
+    async function fetchDateStrip(from, to, date) {
+      _dateStripSearch = { from, to, date };
+      const slot = document.getElementById("dateStripSlot");
+      if (!slot) return;
+      try {
+        const r = await fetch(`/api/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`);
+        const data = await r.json();
+        if (!data.dates?.length) return;
+        if (document.getElementById("dateStripSlot") !== slot) return; // result replaced
+        slot.innerHTML = renderDateStrip(data.dates, date, from, to);
+      } catch { /* silently skip */ }
+    }
+
+    function renderDateStrip(dates, activeDate, from, to) {
+      if (!dates.length) return "";
+      const minPrice = Math.min(...dates.map(d => d.price_usd));
+      const pills = dates.map(d => {
+        const isActive = d.depart_date === activeDate;
+        const isCheapest = d.price_usd === minPrice && !isActive;
+        const cls = isActive ? "active" : isCheapest ? "cheapest" : "";
+        const label = new Date(d.depart_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return `<button class="date-pill ${cls}" onclick="reDateSearch('${esc(from)}','${esc(to)}','${esc(d.depart_date)}')" title="${esc(d.depart_date)}">
+          <span class="dp-day">${esc(label)}</span>
+          <span class="dp-price">$${d.price_usd}</span>
+        </button>`;
+      }).join("");
+
+      // Find cheapest date insight
+      const cheapest = dates.find(d => d.price_usd === minPrice);
+      const saving = cheapest && cheapest.depart_date !== activeDate
+        ? `$${dates.find(d => d.depart_date === activeDate)?.price_usd ?? "?"} on your date vs $${minPrice} on ${new Date(cheapest.depart_date + "T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})} — fly ${Math.abs((new Date(cheapest.depart_date) - new Date(activeDate)) / 86400000)} day${Math.abs((new Date(cheapest.depart_date) - new Date(activeDate)) / 86400000) === 1 ? "" : "s"} ${new Date(cheapest.depart_date) < new Date(activeDate) ? "earlier" : "later"} and save $${dates.find(d => d.depart_date === activeDate)?.price_usd - minPrice}.`
+        : null;
+
+      return `<div class="date-strip-wrap">
+        <div class="date-strip-scroll">${pills}</div>
+        ${saving ? `<div class="date-strip-insight">📅 ${esc(saving)}</div>` : ""}
+      </div>`;
+    }
+
+    function reDateSearch(from, to, date) {
+      setTripType("oneway");
+      document.getElementById("from").value = from;
+      document.getElementById("to").value = to;
+      document.getElementById("date").value = date;
+      searchFlights();
+    }
+
+    // ── Load more flights ──
+    let _lastFlightSearch = null;
+
+    async function loadMoreFlights() {
+      if (!_lastFlightSearch) return;
+      const btn = document.getElementById("loadMoreBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "Loading more…"; }
+
+      const existingCarriers = Array.from(document.querySelectorAll("#flightCards .fc-carrier"))
+        .map(el => el.textContent.trim()).filter(Boolean);
+
+      try {
+        const r = await fetch("/api/flights/more", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ..._lastFlightSearch, existing: existingCarriers }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        const more = renderFlightCards(data.flights, null, null, _lastFlightSearch.from, _lastFlightSearch.to, _lastFlightSearch.date);
+        const container = document.getElementById("flightCards");
+        if (container) container.insertAdjacentHTML("beforeend", more);
+        if (btn) btn.remove();
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = "Show more options →"; }
+      }
     }
 
     function esc(s) {

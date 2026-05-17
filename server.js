@@ -8,7 +8,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { searchFlights } from "./src/tequila.js";
 import { searchFlightsAmadeus } from "./src/amadeus.js";
-import { getFlightPrices, aviasalesUrl } from "./src/travelpayouts.js";
+import { getFlightPrices, getCalendarPrices, aviasalesUrl } from "./src/travelpayouts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +42,42 @@ function bookingUrl(hotelName, city, checkIn, checkOut, adults) {
 }
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// GET /api/calendar — day-by-day prices for flexible date strip
+app.get("/api/calendar", async (req, res) => {
+  const { from, to, date } = req.query;
+  if (!from || !to || !date) return res.status(400).json({ error: "from, to, date required" });
+  if (!process.env.TRAVELPAYOUTS_TOKEN) return res.json({ dates: [] });
+  try {
+    const prices = await getCalendarPrices({ from, to, date, token: process.env.TRAVELPAYOUTS_TOKEN });
+    return res.json({ dates: prices });
+  } catch { return res.json({ dates: [] }); }
+});
+
+// POST /api/flights/more — 6 additional options excluding already-shown carriers
+app.post("/api/flights/more", async (req, res) => {
+  const { from, to, date, adults = 1, preferences = "", existing = [] } = req.body;
+  if (!from || !to || !date) return res.status(400).json({ error: "from, to, date required" });
+  const exclude = existing.length ? `\nDo NOT use these already-shown carriers: ${existing.join(", ")}.` : "";
+  const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
+  const prompt = `Generate 6 more one-way flight options from ${from} to ${to} on ${date} for ${adults} adult${adults > 1 ? "s" : ""}. Use DIFFERENT airlines and routings from those already shown.${exclude}${prefLine}
+
+Cover: ultra-budget with stops, overnight/red-eye, morning departure, alternative hub, niche or regional carrier, best layover city for sightseeing.
+
+Realistic 2026 USD prices. Respond with ONLY valid JSON — no markdown:
+{
+  "flights": [
+    { "carrier": "Airline Name", "flight": "XX000", "departs": "HH:MM", "arrives": "HH:MM", "duration": "XhYYm", "stops": 0, "price_usd": 000, "booking_url": "https://www.airline.com", "layovers": [] }
+  ]
+}
+Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
+  try {
+    const raw = await askClaude(prompt);
+    const { flights } = parseJson(raw);
+    const enriched = flights.map(f => ({ ...f, layovers: f.layovers ?? [], aviasales_url: aviasalesUrl(from, to, date, adults) }));
+    return res.json({ flights: enriched });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // POST /api/parse — convert natural language into trip fields
 app.post("/api/parse", async (req, res) => {
@@ -77,12 +113,12 @@ Rules:
   }
 });
 
-async function getFlights({ from, to, date, adults, preferences = "" }) {
+async function getFlights({ from, to, date, adults, preferences = "", priceHistory = [] }) {
   // 1. Try Travelpayouts (real prices, last 48h) — enrich + supplement via AI
   if (process.env.TRAVELPAYOUTS_TOKEN) {
     try {
       const flights = await getFlightPrices({ from, to, date, token: process.env.TRAVELPAYOUTS_TOKEN });
-      if (flights?.length >= 3) return await enrichAndRecommend(flights, { from, to, date, adults, preferences });
+      if (flights?.length >= 3) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory });
     } catch { /* fall through */ }
   }
 
@@ -94,7 +130,7 @@ async function getFlights({ from, to, date, adults, preferences = "" }) {
         clientId: process.env.AMADEUS_CLIENT_ID,
         clientSecret: process.env.AMADEUS_CLIENT_SECRET,
       });
-      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences });
+      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory });
     } catch { /* fall through */ }
   }
 
@@ -102,7 +138,7 @@ async function getFlights({ from, to, date, adults, preferences = "" }) {
   if (process.env.TEQUILA_API_KEY) {
     try {
       const flights = await searchFlights({ from, to, date, adults, apiKey: process.env.TEQUILA_API_KEY });
-      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences });
+      if (flights?.length) return await enrichAndRecommend(flights, { from, to, date, adults, preferences, priceHistory });
     } catch { /* fall through */ }
   }
 
@@ -158,8 +194,11 @@ Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "
 
 // Use real cached prices as anchors, then have AI assign real airlines/times/layovers
 // and supplement to 6 diverse options, then pick a winner.
-async function enrichAndRecommend(realFlights, { from, to, date, adults, preferences = "" }) {
+async function enrichAndRecommend(realFlights, { from, to, date, adults, preferences = "", priceHistory = [] }) {
   const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
+  const histLine = priceHistory.length
+    ? `\nHistorical winner prices for ${from}→${to}: ${priceHistory.map(h => `$${h.price} (${h.ago})`).join(", ")}`
+    : "";
 
   // Build price anchor list — include airline code and departure time when available
   const anchors = realFlights
@@ -186,9 +225,10 @@ Using these price points as hard constraints (do not invent lower prices), gener
 3. Best value: good price + total under 16h
 4. Premium nonstop (full-service carrier)
 5. Asian hub connector (via HKG/SIN/BKK/NRT/ICN — layover ≥2h)
-6. Alternative routing (different hub, LCC, or lesser-known carrier)${prefLine}
+6. Alternative routing (different hub, LCC, or lesser-known carrier)${prefLine}${histLine}
 
 Assign real airlines that actually fly ${from}→${to}. Use realistic 2026 departure/arrival times (HH:MM).
+${histLine ? `\nBased on the historical prices above, add a "trend" field with your assessment: { "direction": "down"|"up"|"stable", "message": "One sentence like 'Prices down 15% from last week — good time to book now.'" }` : ""}
 
 Respond with ONLY valid JSON — no markdown:
 {
@@ -207,13 +247,13 @@ Respond with ONLY valid JSON — no markdown:
   ],
   "winner_index": 0,
   "runnerup_index": 1,
-  "reason": "One sentence with real numbers."
+  "reason": "One sentence with real numbers."${histLine ? `,\n  "trend": { "direction": "down", "message": "..." }` : ""}
 }
 
 Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
 
   const raw = await askClaude(prompt);
-  const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
+  const { flights, winner_index: wi, runnerup_index: ri, reason, trend } = parseJson(raw);
 
   const enriched = flights.map(f => ({
     ...f,
@@ -221,7 +261,7 @@ Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "duratio
     aviasales_url: aviasalesUrl(from, to, date, adults),
   }));
 
-  return { flights: enriched, winner: enriched[wi], runnerup: enriched[Math.min(ri, enriched.length - 1)], reason };
+  return { flights: enriched, winner: enriched[wi], runnerup: enriched[Math.min(ri, enriched.length - 1)], reason, trend };
 }
 
 
@@ -269,7 +309,7 @@ Respond with ONLY valid JSON — no markdown:
 
 // POST /api/flights
 app.post("/api/flights", async (req, res) => {
-  const { tripType = "oneway", from, to, date, returnDate, legs, adults = 1, preferences = "" } = req.body;
+  const { tripType = "oneway", from, to, date, returnDate, legs, adults = 1, preferences = "", priceHistory = [] } = req.body;
   function fmtD(d) { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
   try {
     if (tripType === "roundtrip") {
@@ -302,7 +342,7 @@ app.post("/api/flights", async (req, res) => {
       const dep = new Date(date), ret2 = new Date(dep);
       ret2.setDate(ret2.getDate() + Number(req.body.nights ?? 4));
       const datesLabel = `${dep.toLocaleDateString("en-US",{month:"short",day:"numeric"})}–${ret2.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;
-      const result = await getFlights({ from, to, date, adults, preferences });
+      const result = await getFlights({ from, to, date, adults, preferences, priceHistory });
       return res.json({ tripType: "oneway", ...result, datesLabel, adults: Number(adults) });
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
