@@ -31,38 +31,88 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
-      background-image:
-        radial-gradient(ellipse 70% 35% at 50% -5%, rgba(99,102,241,0.14) 0%, transparent 65%),
-        radial-gradient(ellipse 40% 20% at 80% 10%, rgba(129,140,248,0.05) 0%, transparent 50%);
       color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 44px 16px 96px;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
     }
 
+    /* ── Split layout ── */
+    .app-layout {
+      display: grid;
+      grid-template-columns: 370px 1fr;
+      height: 100vh;
+    }
+    .left-panel {
+      height: 100vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 40px 24px 48px;
+      gap: 18px;
+      background:
+        radial-gradient(ellipse 140% 55% at 65% 95%, rgba(99,102,241,0.32) 0%, transparent 55%),
+        radial-gradient(ellipse 95% 45% at -8% 22%, rgba(139,92,246,0.2) 0%, transparent 52%),
+        radial-gradient(ellipse 75% 35% at 90% 5%, rgba(56,189,248,0.09) 0%, transparent 48%),
+        linear-gradient(175deg, #070718 0%, #090921 45%, #060613 100%);
+    }
+    .left-panel::before {
+      content: "";
+      position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(1.5px 1.5px at 10% 7%,  rgba(255,255,255,0.55), transparent),
+        radial-gradient(1px   1px   at 33% 16%, rgba(255,255,255,0.4),  transparent),
+        radial-gradient(1.5px 1.5px at 56% 5%,  rgba(255,255,255,0.45), transparent),
+        radial-gradient(1px   1px   at 74% 13%, rgba(255,255,255,0.3),  transparent),
+        radial-gradient(1px   1px   at 87% 27%, rgba(255,255,255,0.25), transparent),
+        radial-gradient(1.5px 1.5px at 20% 40%, rgba(255,255,255,0.2),  transparent),
+        radial-gradient(1px   1px   at 44% 53%, rgba(255,255,255,0.15), transparent),
+        radial-gradient(1px   1px   at 67% 47%, rgba(255,255,255,0.2),  transparent),
+        radial-gradient(1.5px 1.5px at 4%  63%, rgba(255,255,255,0.3),  transparent),
+        radial-gradient(1px   1px   at 91% 71%, rgba(255,255,255,0.18), transparent),
+        radial-gradient(1px   1px   at 28% 78%, rgba(255,255,255,0.12), transparent),
+        radial-gradient(1.5px 1.5px at 50% 88%, rgba(255,255,255,0.1),  transparent);
+    }
+    .left-panel > * { position: relative; z-index: 1; }
+    .left-panel::-webkit-scrollbar { display: none; }
+    .right-panel {
+      height: 100vh;
+      overflow-y: auto;
+      padding: 48px 48px 80px;
+      background:
+        radial-gradient(ellipse 55% 28% at 85% 0%, rgba(99,102,241,0.07) 0%, transparent 55%),
+        #07070d;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(99,102,241,0.25) transparent;
+    }
+    .right-panel::-webkit-scrollbar { width: 5px; }
+    .right-panel::-webkit-scrollbar-track { background: transparent; }
+    .right-panel::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 3px; }
+
     /* ── Header ── */
-    .header { text-align: center; margin-bottom: 36px; }
+    .header { text-align: left; margin-bottom: 0; }
     .header-icon {
-      width: 48px; height: 48px; border-radius: 14px;
+      width: 44px; height: 44px; border-radius: 13px;
       background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; margin-bottom: 14px;
-      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      font-size: 1.3rem; margin-bottom: 12px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.5);
     }
-    .header h1 { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; margin-bottom: 6px; }
-    .header p { font-size: 0.875rem; color: var(--text3); letter-spacing: 0.01em; }
+    .header h1 { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; margin-bottom: 4px; }
+    .header p { font-size: 0.8rem; color: var(--text3); letter-spacing: 0.01em; }
 
     /* ── Card ── */
     .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.055);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 22px;
-      padding: 28px;
-      width: 100%; max-width: 580px;
-      box-shadow: var(--shadow-card);
+      padding: 22px;
+      width: 100%; max-width: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
     }
 
     /* ── Fields ── */
@@ -72,8 +122,8 @@
       text-transform: uppercase; letter-spacing: 0.1em;
     }
     input, select {
-      background: var(--bg);
-      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.38);
+      border: 1px solid rgba(255,255,255,0.09);
       border-radius: 12px;
       color: var(--text); font-size: 0.95rem;
       padding: 11px 14px;
@@ -157,7 +207,7 @@
     .toggle-wrap input[type=checkbox] { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); cursor: pointer; }
 
     /* ── History ── */
-    #historySection { width: 100%; max-width: 580px; margin-top: 14px; display: none; }
+    #historySection { width: 100%; max-width: none; margin-top: 0; display: none; }
     .history-label { font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
     .history-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .history-chip {
@@ -173,8 +223,17 @@
     }
     .history-clear:hover { color: var(--text2); opacity: 1; }
 
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 65vh; text-align: center; gap: 14px; opacity: 0.22; user-select: none;
+    }
+    .empty-state-icon { font-size: 3.5rem; }
+    .empty-state-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .empty-state-sub { font-size: 0.8rem; color: var(--text3); }
+
     /* ── Results ── */
-    .result-section { width: 100%; max-width: 920px; margin-top: 32px; }
+    .result-section { width: 100%; max-width: none; margin-top: 0; }
     .results-grid { display: grid; grid-template-columns: 1fr 310px; gap: 14px; align-items: start; }
 
     .section-hdr {
@@ -440,11 +499,17 @@
       border-radius: 14px; padding: 16px 20px; color: #fca5a5; font-size: 0.875rem;
     }
 
-    /* ── Mobile ── */
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      body { height: auto; overflow: auto; }
+      .app-layout { display: block; height: auto; }
+      .left-panel { height: auto; padding: 32px 16px 28px; }
+      .right-panel { height: auto; padding: 24px 16px 60px; }
+      .right-panel::-webkit-scrollbar { display: none; }
+    }
     @media (max-width: 680px) {
-      body { padding: 28px 12px 72px; }
-      .header h1 { font-size: 1.5rem; }
-      .card { padding: 20px; border-radius: 18px; }
+      .header h1 { font-size: 1.4rem; }
+      .card { padding: 18px; border-radius: 18px; }
       .results-grid { grid-template-columns: 1fr; }
       .fc-price { font-size: 1.2rem; }
       .total-amount { font-size: 1.6rem; }
@@ -471,7 +536,7 @@
     /* ── Trip type tabs ── */
     .trip-type-tabs {
       display: flex; gap: 3px; margin-bottom: 22px;
-      background: var(--bg); border: 1px solid var(--border);
+      background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.07);
       border-radius: 13px; padding: 4px;
     }
     .trip-tab {
@@ -510,6 +575,10 @@
   </style>
 </head>
 <body>
+<div class="app-layout">
+
+  <!-- ── Left panel: header + form ── -->
+  <aside class="left-panel">
 
   <div class="header">
     <div class="header-icon">✈</div>
@@ -628,8 +697,20 @@
     <div class="history-chips" id="historyChips"></div>
   </div>
 
-  <div id="flightResult" class="result-section"></div>
-  <div id="hotelResult" class="result-section" style="margin-top:14px"></div>
+  </aside><!-- end left-panel -->
+
+  <!-- ── Right panel: results ── -->
+  <main class="right-panel">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">✈</div>
+      <div class="empty-state-title">Search for flights or hotels</div>
+      <div class="empty-state-sub">Results will appear here</div>
+    </div>
+    <div id="flightResult" class="result-section"></div>
+    <div id="hotelResult" class="result-section" style="margin-top:24px"></div>
+  </main>
+
+</div><!-- end app-layout -->
 
   <script>
     // ── Init ──
@@ -929,7 +1010,12 @@
       { label: "Comparing all options",       delay: 14000 },
       { label: "Picking the best flight",     delay: 22000 },
     ];
+    function hideEmptyState() {
+      const es = document.getElementById("emptyState");
+      if (es) es.style.display = "none";
+    }
     function showFlightLoading() {
+      hideEmptyState();
       if (_flt) clearInterval(_flt);
       document.getElementById("flightResult").innerHTML = `
         <div class="loading-wrap">
@@ -965,6 +1051,7 @@
       { label: "Picking the best stay",      delay: 16000 },
     ];
     function showHotelLoading() {
+      hideEmptyState();
       if (_hlt) clearInterval(_hlt);
       document.getElementById("hotelResult").innerHTML = `
         <div class="loading-wrap">
