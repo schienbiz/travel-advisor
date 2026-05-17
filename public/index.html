@@ -589,6 +589,39 @@
     @media (max-width: 520px) {
       .leg-row { grid-template-columns: 1fr 16px 1fr 120px 28px; gap: 4px; }
     }
+
+    /* ── Mobile form mini-bar ── */
+    .form-mini {
+      display: none;
+      align-items: center; justify-content: space-between; gap: 10px;
+      background: rgba(255,255,255,0.055);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 12px 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .form-mini-route {
+      font-size: 0.92rem; font-weight: 700; color: var(--text); letter-spacing: -0.01em;
+    }
+    .form-mini-sub {
+      font-size: 0.72rem; color: var(--text3); margin-top: 2px;
+    }
+    .form-mini-edit {
+      flex-shrink: 0; background: var(--accent-dim); border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 10px; color: var(--accent2); font-size: 0.78rem; font-weight: 600;
+      padding: 7px 14px; cursor: pointer; min-height: 0; white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .form-mini-edit:hover { background: rgba(99,102,241,0.2); opacity: 1; }
+    @media (max-width: 900px) {
+      .form-mini.visible { display: flex; }
+      .card.form-hidden { display: none; }
+      #historySection.form-hidden { display: none !important; }
+    }
+    @media (min-width: 901px) {
+      .form-mini { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -721,6 +754,14 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
       <button class="btn-primary" id="flightBtn" onclick="searchFlights()">✈ Search Flights</button>
       <button class="btn-secondary" id="hotelBtn" onclick="searchHotel()">🏨 Search Hotel</button>
     </div>
+  </div>
+
+  <div class="form-mini" id="formMini">
+    <div>
+      <div class="form-mini-route" id="formMiniRoute">—</div>
+      <div class="form-mini-sub" id="formMiniSub">—</div>
+    </div>
+    <button class="form-mini-edit" onclick="expandForm()">Edit ✎</button>
   </div>
 
   <div id="historySection">
@@ -1047,6 +1088,24 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
       const es = document.getElementById("emptyState");
       if (es) es.style.display = "none";
     }
+
+    function collapseFormOnMobile(routeLabel, subLabel) {
+      if (window.innerWidth > 900) return;
+      document.querySelector(".card").classList.add("form-hidden");
+      const hs = document.getElementById("historySection");
+      if (hs) hs.classList.add("form-hidden");
+      document.getElementById("formMiniRoute").textContent = routeLabel;
+      document.getElementById("formMiniSub").textContent = subLabel;
+      document.getElementById("formMini").classList.add("visible");
+    }
+
+    function expandForm() {
+      document.querySelector(".card").classList.remove("form-hidden");
+      const hs = document.getElementById("historySection");
+      if (hs) hs.classList.remove("form-hidden");
+      document.getElementById("formMini").classList.remove("visible");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     function showFlightLoading() {
       hideEmptyState();
       if (_flt) clearInterval(_flt);
@@ -1247,11 +1306,28 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
       if (data.tripType === "roundtrip")      showRoundTripResult(data);
       else if (data.tripType === "multicity") showMultiCityResult(data);
       else                                    showOneWayResult(data);
+      // Mobile: collapse form, scroll to results
+      const from = document.getElementById("from").value.toUpperCase();
+      const to   = document.getElementById("to").value.toUpperCase();
+      const date = document.getElementById("date").value;
+      const adults = document.getElementById("adults").value;
+      const d = date ? new Date(date).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "";
+      collapseFormOnMobile(`${from} → ${to}`, `${d} · ${adults} traveler${adults > 1 ? "s" : ""}`);
+      if (window.innerWidth <= 900)
+        document.getElementById("flightResult").scrollIntoView({ behavior: "smooth" });
     }
 
     function showHotelResultSection(data) {
       stopHotelLoading();
       document.getElementById("hotelResult").innerHTML = renderHotelCard(data, data.nights);
+      // Mobile: collapse form, scroll to results
+      const to = document.getElementById("to").value.toUpperCase();
+      const date = document.getElementById("date").value;
+      const nights = document.getElementById("nights").value;
+      const d = date ? new Date(date).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "";
+      collapseFormOnMobile(`Hotel · ${to}`, `${d} · ${nights} night${nights > 1 ? "s" : ""}`);
+      if (window.innerWidth <= 900)
+        document.getElementById("hotelResult").scrollIntoView({ behavior: "smooth" });
     }
 
     function showOneWayResult({ flights, winner, reason, datesLabel, trend }) {
