@@ -537,6 +537,34 @@
       .row .field:first-child { grid-column: span 2; }
     }
 
+    /* ── Help section ── */
+    .help-details {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+    .help-details > summary {
+      font-size: 0.78rem; font-weight: 700; color: var(--text2);
+      cursor: pointer; list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+      user-select: none;
+    }
+    .help-details > summary::-webkit-details-marker { display: none; }
+    .help-details > summary::after { content: "›"; font-size: 1.1rem; color: var(--text3); transition: transform 0.2s; }
+    .help-details[open] > summary::after { transform: rotate(90deg); }
+    .help-body { margin-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+    .help-mode { display: flex; gap: 12px; align-items: flex-start; }
+    .help-mode-num {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: var(--accent-dim); border: 1px solid rgba(99,102,241,0.3);
+      color: var(--accent2); font-size: 0.68rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .help-mode-title { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .help-mode-desc { font-size: 0.75rem; color: var(--text3); line-height: 1.55; }
+
     /* ── Findings section ── */
     .findings-section {
       margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px;
@@ -647,6 +675,33 @@
     <h1>Travel Advisor</h1>
     <p>One opinionated pick — no endless scrolling.</p>
   </div>
+
+  <details class="help-details" id="helpDetails">
+    <summary>使用說明</summary>
+    <div class="help-body">
+      <div class="help-mode">
+        <div class="help-mode-num">1</div>
+        <div>
+          <div class="help-mode-title">自然語言輸入</div>
+          <div class="help-mode-desc">在「描述你的旅程」欄位輸入，例如「東京五月底七天兩人從台北出發」，點 Fill ↓ 自動填入出發地、目的地與日期。</div>
+        </div>
+      </div>
+      <div class="help-mode">
+        <div class="help-mode-num">2</div>
+        <div>
+          <div class="help-mode-title">讓 AI 幫你搜尋</div>
+          <div class="help-mode-desc">填好出發地、目的地、日期，「Your search results」保持空白，點「✈ Search Flights」。AI 從真實票價資料庫找出選項並推薦最佳航班。</div>
+        </div>
+      </div>
+      <div class="help-mode">
+        <div class="help-mode-num">3</div>
+        <div>
+          <div class="help-mode-title">分析自己找到的結果（推薦）</div>
+          <div class="help-mode-desc">把你在 Google Flights、Skyscanner、航空公司官網找到的航班貼到「Your search results」，一行一筆，格式隨意。點「Analyze My Options」，AI 解析並從你的選項中挑出最優解。</div>
+        </div>
+      </div>
+    </div>
+  </details>
 
   <div class="card">
     <div class="trip-type-tabs">
