@@ -537,6 +537,18 @@
       .row .field:first-child { grid-column: span 2; }
     }
 
+    /* ── Findings section ── */
+    .findings-section {
+      margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px;
+    }
+    .findings-section textarea {
+      border-color: rgba(255,255,255,0.09);
+    }
+    .findings-section textarea:not(:placeholder-shown) {
+      border-color: rgba(99,102,241,0.35);
+      background: rgba(99,102,241,0.05);
+    }
+
     /* ── Search buttons ── */
     .search-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .btn-secondary {
@@ -736,19 +748,14 @@
       </div>
     </details>
 
-    <details class="prefs-details" id="findingsDetails">
-      <summary>My own findings <span style="font-size:0.65rem;color:var(--accent2);margin-left:4px">+ merge &amp; compare</span></summary>
-      <div class="prefs-body">
-        <div class="field" style="margin:0">
-          <label>Paste flights or hotels you found</label>
-          <textarea id="userFindings" rows="4" placeholder="e.g.
+    <div class="findings-section">
+      <label style="font-size:0.68rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:7px">Your search results</label>
+      <textarea id="userFindings" rows="4" placeholder="Paste what you found — one option per line, freeform:
 ANA $255 departs 09:00 direct
 Jetstar $199 via Osaka 13h
-Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-height:1.5;font-family:inherit"></textarea>
-          <div style="font-size:0.68rem;color:var(--text3);margin-top:5px">Freeform — the AI will parse, merge and compare against its own results.</div>
-        </div>
-      </div>
-    </details>
+EVA Air $310 nonstop 16:30" style="resize:vertical;font-size:0.82rem;line-height:1.5;font-family:inherit" oninput="updateSearchBtn()"></textarea>
+      <div id="findingsHint" style="font-size:0.68rem;color:var(--text3);margin-top:5px">Leave blank to have AI search for flights. Fill in to analyze your own finds.</div>
+    </div>
 
     <div class="search-btns">
       <button class="btn-primary" id="flightBtn" onclick="searchFlights()">✈ Search Flights</button>
@@ -1042,7 +1049,7 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
         if (body.tripType === "oneway" && body.from && body.to && body.date)
           fetchDateStrip(body.from, body.to, body.date);
       } catch (err) { showFlightError(err.message); }
-      finally { btn.disabled = false; btn.textContent = "✈ Search Flights"; }
+      finally { btn.disabled = false; updateSearchBtn(); }
     }
 
     // ── Hotel search ──
@@ -1077,13 +1084,30 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
       finally { btn.disabled = false; btn.textContent = "🏨 Search Hotel"; }
     }
 
+    // ── Update search button text based on findings ──
+    function updateSearchBtn() {
+      const hasFindings = (document.getElementById("userFindings")?.value.trim().length ?? 0) > 0;
+      const btn = document.getElementById("flightBtn");
+      btn.textContent = hasFindings ? "Analyze My Options" : "✈ Search Flights";
+    }
+
     // ── Flight loading ──
-    const FLIGHT_STEPS = [
-      { label: "Checking real prices",       delay: 0     },
-      { label: "Generating flight options",   delay: 5000  },
-      { label: "Comparing all options",       delay: 14000 },
-      { label: "Picking the best flight",     delay: 22000 },
+    const FLIGHT_STEPS_ANALYZE = [
+      { label: "Parsing your options",         delay: 0    },
+      { label: "Estimating missing details",   delay: 3000 },
+      { label: "Ranking all options",          delay: 8000 },
+      { label: "Picking the best one",         delay: 14000},
     ];
+    const FLIGHT_STEPS_SEARCH = [
+      { label: "Checking real prices",       delay: 0     },
+      { label: "Generating flight options",  delay: 5000  },
+      { label: "Comparing all options",      delay: 14000 },
+      { label: "Picking the best flight",    delay: 22000 },
+    ];
+    function FLIGHT_STEPS() {
+      const hasFindings = (document.getElementById("userFindings")?.value.trim().length ?? 0) > 0;
+      return hasFindings ? FLIGHT_STEPS_ANALYZE : FLIGHT_STEPS_SEARCH;
+    }
     function hideEmptyState() {
       const es = document.getElementById("emptyState");
       if (es) es.style.display = "none";
@@ -1109,11 +1133,12 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
     function showFlightLoading() {
       hideEmptyState();
       if (_flt) clearInterval(_flt);
+      const steps = FLIGHT_STEPS();
       document.getElementById("flightResult").innerHTML = `
         <div class="loading-wrap">
           <div class="loading-icon">✈</div>
           <div class="loading-steps">
-            ${FLIGHT_STEPS.map((s,i) => `
+            ${steps.map((s,i) => `
               <div class="step" id="fs${i}">
                 <span class="step-icon"><span class="step-dot"></span></span>
                 <span>${s.label}</span>
@@ -1123,9 +1148,9 @@ Hotel Mystays $80/night Shinjuku" style="resize:vertical;font-size:0.82rem;line-
       const start = Date.now();
       function tick() {
         const el = Date.now() - start; let set = false;
-        for (let i = FLIGHT_STEPS.length-1; i >= 0; i--) {
+        for (let i = steps.length-1; i >= 0; i--) {
           const s = document.getElementById("fs"+i); if (!s) continue;
-          if (el >= FLIGHT_STEPS[i].delay) {
+          if (el >= steps[i].delay) {
             if (!set) { s.className="step active"; s.querySelector(".step-icon").innerHTML='<span class="spinner-sm"></span>'; set=true; }
             else      { s.className="step done";   s.querySelector(".step-icon").innerHTML='<span style="color:var(--green);font-size:0.8rem;font-weight:700">✓</span>'; }
           }

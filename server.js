@@ -113,7 +113,61 @@ Rules:
   }
 });
 
+async function analyzeUserFindings({ from, to, date, adults, preferences = "", userFindings }) {
+  const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
+  const prompt = `You are a flight advisor. The traveler searched for flights from ${from} to ${to} on ${date} for ${adults} adult${adults > 1 ? "s" : ""} and found these options themselves:
+
+${userFindings.trim()}
+
+Parse each option into structured flight data. Fill in reasonable estimates for any missing fields (duration, arrival time, flight number) based on this route and airline. Then rank them and pick the best one.${prefLine}
+
+Respond with ONLY valid JSON — no markdown:
+{
+  "flights": [
+    {
+      "carrier": "Airline Name",
+      "flight": "XX000 or null",
+      "departs": "HH:MM or null",
+      "arrives": "HH:MM or null",
+      "duration": "XhYYm or null",
+      "stops": 0,
+      "price_usd": 000,
+      "layovers": [],
+      "source": "user"
+    }
+  ],
+  "winner_index": 0,
+  "runnerup_index": 1,
+  "reason": "One sentence with real numbers explaining the pick."
+}
+
+Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]
+Every flight must have "source": "user".`.trim();
+
+  const raw = await askClaude(prompt);
+  const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
+
+  const enriched = flights.map(f => ({
+    ...f,
+    layovers: f.layovers ?? [],
+    source: "user",
+    aviasales_url: aviasalesUrl(from, to, date, adults),
+  }));
+
+  return {
+    flights: enriched,
+    winner: enriched[wi],
+    runnerup: enriched[Math.min(ri ?? wi + 1, enriched.length - 1)],
+    reason,
+  };
+}
+
 async function getFlights({ from, to, date, adults, preferences = "", priceHistory = [], userFindings = "" }) {
+  // When user provides their own finds, skip all APIs and just analyze those
+  if (userFindings?.trim()) {
+    return await analyzeUserFindings({ from, to, date, adults, preferences, userFindings });
+  }
+
   // 1. Try Travelpayouts (real prices, last 48h) — enrich + supplement via AI
   if (process.env.TRAVELPAYOUTS_TOKEN) {
     try {
