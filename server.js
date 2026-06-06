@@ -42,6 +42,7 @@ function bookingUrl(hotelName, city, checkIn, checkOut, adults) {
 }
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/health",     (_req, res) => res.json({ ok: true }));
 
 // GET /api/calendar — day-by-day prices for flexible date strip
 app.get("/api/calendar", async (req, res) => {
