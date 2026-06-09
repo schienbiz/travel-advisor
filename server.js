@@ -16,18 +16,33 @@ const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, "public")));
 
-const nvidia = new OpenAI({
-  apiKey: process.env.NVIDIA_API_KEY,
-  baseURL: "https://integrate.api.nvidia.com/v1",
-});
+const _aiProviders = [
+  process.env.GROQ_API_KEY && {
+    label: "Groq",
+    client: new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" }),
+    model: "meta-llama/llama-4-scout-17b-instruct",
+  },
+  process.env.NVIDIA_API_KEY && {
+    label: "NVIDIA",
+    client: new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: "https://integrate.api.nvidia.com/v1" }),
+    model: "meta/llama-3.3-70b-instruct",
+  },
+].filter(Boolean);
 
 async function askClaude(prompt) {
-  const resp = await nvidia.chat.completions.create({
-    model: "meta/llama-3.3-70b-instruct",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
-  });
-  return resp.choices[0].message.content;
+  for (const p of _aiProviders) {
+    try {
+      const resp = await p.client.chat.completions.create({
+        model: p.model,
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      });
+      return resp.choices[0].message.content;
+    } catch (err) {
+      console.warn(`[ai] ${p.label} failed:`, err.message);
+    }
+  }
+  throw new Error("All AI providers failed");
 }
 
 function parseJson(raw) {
