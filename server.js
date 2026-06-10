@@ -20,7 +20,7 @@ const _aiProviders = [
   process.env.GROQ_API_KEY && {
     label: "Groq",
     client: new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" }),
-    model: "meta-llama/llama-4-scout-17b-instruct",
+    model: "meta-llama/llama-4-scout-17b-16e-instruct",
   },
   process.env.NVIDIA_API_KEY && {
     label: "NVIDIA",
