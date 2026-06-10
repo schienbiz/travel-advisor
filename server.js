@@ -22,6 +22,11 @@ const _aiProviders = [
     client: new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" }),
     model: "meta-llama/llama-4-scout-17b-16e-instruct",
   },
+  process.env.CEREBRAS_API_KEY && {
+    label: "Cerebras",
+    client: new OpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: "https://api.cerebras.ai/v1" }),
+    model: "gpt-oss-120b",
+  },
   process.env.NVIDIA_API_KEY && {
     label: "NVIDIA",
     client: new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: "https://integrate.api.nvidia.com/v1" }),
