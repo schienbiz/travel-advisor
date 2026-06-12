@@ -34,20 +34,113 @@ const _aiProviders = [
   },
 ].filter(Boolean);
 
-async function askClaude(prompt) {
-  for (const p of _aiProviders) {
-    try {
-      const resp = await p.client.chat.completions.create({
-        model: p.model,
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }],
-      });
-      return resp.choices[0].message.content;
-    } catch (err) {
-      console.warn(`[ai] ${p.label} failed:`, err.message);
-    }
+// Circuit breaker: 60s cooldown per provider on 429
+const _cooldown = new Map();
+function isCooling(label) {
+  const until = _cooldown.get(label);
+  if (!until || Date.now() >= until) { _cooldown.delete(label); return false; }
+  return true;
+}
+function setCooldown(label) {
+  _cooldown.set(label, Date.now() + 60_000);
+  console.warn(`[ai] ${label} 429 — 60s cooldown`);
+}
+
+function activeProviders() {
+  return _aiProviders.filter(p => !isCooling(p.label));
+}
+
+async function callProvider(p, prompt, max_tokens = 1024) {
+  const resp = await p.client.chat.completions.create({
+    model: p.model, max_tokens,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = resp.choices[0]?.message?.content?.trim();
+  if (!text) throw new Error("empty response");
+  return text;
+}
+
+/**
+ * Fast parallel race — all providers start simultaneously, first valid wins.
+ * Use for latency-sensitive calls: /api/parse, /api/flights/more, analyzeUserFindings.
+ */
+async function askClaude(prompt, max_tokens = 1024) {
+  const providers = activeProviders();
+  if (!providers.length) throw new Error("All AI providers cooling down");
+
+  const attempts = providers.map(p =>
+    callProvider(p, prompt, max_tokens)
+      .then(text => { console.log(`[ai] ${p.label} won race`); return text; })
+      .catch(err => {
+        if (err?.status === 429) setCooldown(p.label);
+        else console.warn(`[ai] ${p.label} failed: ${err.message}`);
+        throw err;
+      })
+  );
+
+  try {
+    return await Promise.any(attempts);
+  } catch {
+    throw new Error("All AI providers failed");
   }
-  throw new Error("All AI providers failed");
+}
+
+/**
+ * Quality gather + synthesis — all providers run in parallel, wait up to 20s,
+ * then a synthesis pass picks the best winner/reason from ≥2 responses.
+ * Use for main recommendations: enrichAndRecommend, pure AI flights, hotels.
+ */
+async function askClaudeQuality(prompt, max_tokens = 1200) {
+  const providers = activeProviders();
+  if (!providers.length) throw new Error("All AI providers cooling down");
+
+  const GATHER_MS = 20_000;
+  const successes = [];
+
+  const tasks = providers.map(p =>
+    callProvider(p, prompt, max_tokens)
+      .then(text => { successes.push({ label: p.label, text }); return text; })
+      .catch(err => {
+        if (err?.status === 429) setCooldown(p.label);
+        else console.warn(`[ai] ${p.label} failed: ${err.message}`);
+        return null;
+      })
+  );
+
+  await Promise.race([
+    Promise.allSettled(tasks),
+    new Promise(r => setTimeout(r, GATHER_MS)),
+  ]);
+
+  if (!successes.length) throw new Error("All AI providers failed");
+
+  if (successes.length === 1) {
+    console.log(`[ai] quality: single response from ${successes[0].label}`);
+    return successes[0].text;
+  }
+
+  // ≥2 responses — synthesis pass: pick the best JSON winner/reason
+  console.log(`[ai] quality: synthesizing from ${successes.map(s => s.label).join(" + ")}`);
+  const drafts = successes.map((s, i) => `[Expert ${i + 1} — ${s.label}]\n${s.text}`).join("\n\n");
+  const synthPrompt = `You are a synthesis AI. Multiple travel advisor models responded to the same query. Your job:
+1. Take the FIRST expert's flight/hotel list as the base structure (it has the most validated data).
+2. Read all experts' winner picks and reasoning.
+3. Output a single merged JSON that combines the best winner pick (weighted by which expert gave the most specific, numeric reason) with the strongest reason sentence.
+4. Do NOT invent new flights or hotels — only use what Expert 1 listed.
+5. Return ONLY valid JSON with the same schema — no markdown, no explanation.
+
+Original query context: ${prompt.slice(0, 300)}
+
+Expert responses:
+${drafts}`;
+
+  try {
+    const synth = await askClaude(synthPrompt, max_tokens);
+    return synth;
+  } catch {
+    console.warn("[ai] synthesis failed — using first success");
+    return successes[0].text;
+  }
 }
 
 function parseJson(raw) {
@@ -165,7 +258,7 @@ Respond with ONLY valid JSON — no markdown:
 Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]
 Every flight must have "source": "user".`.trim();
 
-  const raw = await askClaude(prompt);
+  const raw = await askClaudeQuality(prompt, 1200);
   const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
 
   const enriched = flights.map(f => ({
@@ -255,7 +348,7 @@ Respond with ONLY valid JSON — no markdown:
 
 Layover format: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]`.trim();
 
-  const raw = await askClaude(prompt);
+  const raw = await askClaudeQuality(prompt, 1200);
   const { flights, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
 
   const enriched = flights.map(f => ({
@@ -334,7 +427,7 @@ Respond with ONLY valid JSON — no markdown:
 Layover: [{ "airport": "HKG", "city": "Hong Kong", "duration": "2h30m", "durationMinutes": 150 }]
 source field: "user" for traveler-provided finds, "api" for everything else.`.trim();
 
-  const raw = await askClaude(prompt);
+  const raw = await askClaudeQuality(prompt, 1200);
   const { flights, winner_index: wi, runnerup_index: ri, reason, trend } = parseJson(raw);
 
   const enriched = flights.map(f => ({
@@ -385,7 +478,7 @@ source field: "user" for traveler-provided hotels, "api" for everything else.`.t
 
   const prefLine = preferences ? `\nTraveler preferences: ${preferences}` : "";
   const fullPrompt = prompt + prefLine;
-  const raw = await askClaude(fullPrompt);
+  const raw = await askClaudeQuality(fullPrompt, 1200);
   const { city, hotels, winner_index: wi, runnerup_index: ri, reason } = parseJson(raw);
 
   const enriched = hotels.map(h => ({
