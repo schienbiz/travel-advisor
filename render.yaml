@@ -5,6 +5,10 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
       - key: NVIDIA_API_KEY
         sync: false
       - key: TRAVELPAYOUTS_TOKEN
